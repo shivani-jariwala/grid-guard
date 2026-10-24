@@ -180,10 +180,14 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
 
 ### P2 (Agent)
 - [ ] **P2-01** Turn on Claude model access in the hackathon Bedrock account. Record region + model ID in config.
+  - Progress: access is confirmed. Team 31 account `824013461080`, role `WSParticipantRole`, `us-east-1`. A test Converse call worked on `us.anthropic.claude-sonnet-4-5-20250929-v1:0` and `us.anthropic.claude-haiku-4-5-20251001-v1:0`. About 15 Claude models are listed, all callable only through inference profile IDs (`us.` / `global.` prefix).
+  - Left: P2 picks the model ID and puts it in config.
 - [ ] **P2-02** Test one Converse API call with a dummy tool from a laptop.
   - Done when: the model calls the tool and we read the result back.
 - [ ] **P2-03** With P3 (see P3-16): confirm the Claude model, Bedrock Guardrails and the contextual grounding check are all available in our region. Check quotas.
   - The event account only allows `us-east-1` (Workshop Studio, Team 31), so that's the region.
+  - Progress: Claude confirmed in `us-east-1` (see P2-01). `ListGuardrails` works (0 guardrails so far).
+  - Left: creating a guardrail and the contextual grounding check aren't tested yet (do it in P2-10). Quotas not checked.
 - [ ] **P2-04** Draft system prompt v0 and JSON schemas for the 5 tools. Write C6.
 
 ### P3 (Simulator + backend)
@@ -202,6 +206,8 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
   - Done when: P2 can import it and call it with a C3 plan.
 - [ ] **P3-16** AWS Budgets alarm on the hackathon account (email the team). With P2: confirm Claude + Guardrails region availability (P2-03).
   - Done when: the alarm shows in Budgets, and the region is written in `tech.md`.
+  - Progress: region done. `us-east-1` is written in `tech.md` and Claude is confirmed there.
+  - Left: the Budgets alarm.
 
 ### P4 (Frontend)
 - [ ] **P4-01** Vite + React + TS app, Recharts, routes for the 3 screens (empty pages): Forecast, Agent run, Briefing + approval.
