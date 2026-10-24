@@ -336,11 +336,8 @@ tasks.md             team plan, task owners and contracts
 
 | Name | Role |
 |---|---|
-| Snehil Raut | ML forecast, scenarios, Bedrock agent, demo page |
-| Shivani Jariwala | Backend, simulator, API, AWS deployment |
-| Nghi (dangnghl) | React frontend |
-| [Name] | [Role] |
-| [Name] | [Role] |
+| Snehil Raut | ML forecast, scenarios, Bedrock agent, demo page, AWS deploymen |
+| Shivani Jariwala | Backend, simulator, API |
 
 ---
 
