@@ -1,0 +1,130 @@
+{
+  "id": "sept6_2022",
+  "name": "Sept 6, 2022 heat wave",
+  "date": "2022-09-06",
+  "forecast_id": "sept6_2022",
+  "margin_target_pct": 6.0,
+  "supply": {
+    "firm_mw": 43690.0,
+    "firm_mw_source": "Estimated from EIA actuals: Sept 6 2022 actual demand minus solar minus wind at the peak hour, plus a tuned cushion so the no-action evening is RED and the day needs the public alert to go green (demo calibration, not a measured firm-capacity figure). See docs/sources.md.",
+    "solar_mw_by_hour": [
+      60.0,
+      60.0,
+      62.0,
+      62.0,
+      62.0,
+      62.0,
+      61.0,
+      278.0,
+      3813.0,
+      9071.0,
+      11244.0,
+      11909.0,
+      12103.0,
+      12041.0,
+      11913.0,
+      11582.0,
+      11400.0,
+      10375.0,
+      7122.0,
+      1765.0,
+      42.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "wind_mw_by_hour": [
+      517.0,
+      474.0,
+      503.0,
+      436.0,
+      323.0,
+      216.0,
+      172.0,
+      154.0,
+      152.0,
+      35.0,
+      49.0,
+      88.0,
+      268.0,
+      332.0,
+      450.0,
+      500.0,
+      539.0,
+      606.0,
+      792.0,
+      1149.0,
+      1323.0,
+      1700.0,
+      2264.0,
+      2622.0
+    ]
+  },
+  "battery": {
+    "power_mw": 3900,
+    "energy_mwh": 15600,
+    "start_soc_pct": 90,
+    "efficiency": 0.85,
+    "note": "ASSUMPTION: batteries assumed charged from midday solar. No recharge modeled."
+  },
+  "precool": {
+    "allowed_from_hours": [
+      17,
+      18,
+      19,
+      20
+    ],
+    "allowed_to_hours": [
+      13,
+      14,
+      15,
+      16
+    ],
+    "max_shift_mw": 1000,
+    "rebound_pct": 30
+  },
+  "demand_response": [
+    {
+      "name": "Utility DR programs",
+      "mw": 1200,
+      "max_hours": 4,
+      "earliest": 16,
+      "latest": 21
+    },
+    {
+      "name": "Emergency Load Reduction",
+      "mw": 500,
+      "max_hours": 3,
+      "earliest": 17,
+      "latest": 21
+    }
+  ],
+  "public_alert": {
+    "reduction_mw": {
+      "low": 1000,
+      "likely": 2000,
+      "high": 2400
+    },
+    "max_hours": 3,
+    "alerts_left_this_season": 3
+  },
+  "sources": {
+    "margin_target_pct": "ASSUMPTION: 6% operating reserve margin target, in line with NERC-style minimums.",
+    "supply.firm_mw": "Estimated from EIA actuals: Sept 6 2022 actual demand minus solar minus wind at the peak hour, plus a tuned cushion so the no-action evening is RED and the day needs the public alert to go green (demo calibration, not a measured firm-capacity figure). See docs/sources.md.",
+    "supply.solar_mw_by_hour": "EIA CAISO hourly generation by fuel type (SUN), local hours, floored at 0.",
+    "supply.wind_mw_by_hour": "EIA CAISO hourly generation by fuel type (WND), local hours, floored at 0.",
+    "battery.power_mw": "E Source: CAISO had more than 3,900 MW of batteries, Sept 2022.",
+    "battery.energy_mwh": "ASSUMPTION: typical 4-hour batteries (3,900 MW x 4 h = 15,600 MWh).",
+    "battery.start_soc_pct": "ASSUMPTION: batteries assumed ~90% charged from midday solar.",
+    "battery.efficiency": "ASSUMPTION: 85% round-trip/discharge efficiency for grid batteries.",
+    "precool.max_shift_mw": "ASSUMPTION: up to 1,000 MW of load shiftable via utility pre-cooling programs.",
+    "precool.rebound_pct": "ASSUMPTION: 30% of shifted load rebounds the hour after pre-cooling ends.",
+    "demand_response[0].mw": "ASSUMPTION: utility demand response programs worth ~1,200 MW.",
+    "demand_response[1].mw": "ASSUMPTION: emergency load reduction program worth ~500 MW.",
+    "public_alert.reduction_mw.low": "Cal Advocates: ~2,000 MW drop in 20-30 min (low end used conservatively, 1,000 MW).",
+    "public_alert.reduction_mw.likely": "Cal Advocates: ~2,000 MW demand drop after the Sept 6 2022 text alert.",
+    "public_alert.reduction_mw.high": "E Source: up to ~2,400 MW reduction attributed to the alert.",
+    "public_alert.max_hours": "ASSUMPTION: a public alert runs at most 3 hours.",
+    "public_alert.alerts_left_this_season": "ASSUMPTION: 3 public alerts remain this season."
+  }
+}
