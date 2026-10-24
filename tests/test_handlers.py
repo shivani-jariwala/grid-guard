@@ -102,6 +102,44 @@ def test_resources_errors(call, params, status, code):
 
 
 # ---------------------------------------------------------------------------
+# GET /forecast
+# ---------------------------------------------------------------------------
+
+
+def test_forecast_returns_the_scenarios_forecast(call):
+    status, body = call("forecast_api", get({"scenario": "test_day"}))
+    assert status == 200 and body == forecast_dict()
+
+
+@pytest.mark.parametrize(
+    "params, status, code",
+    [
+        (None, 400, "BAD_REQUEST"),
+        ({"scenario": "../etc/passwd"}, 400, "BAD_REQUEST"),
+        ({"scenario": "nope"}, 404, "SCENARIO_NOT_FOUND"),
+    ],
+)
+def test_forecast_errors(call, params, status, code):
+    got_status, body = call("forecast_api", get(params))
+    assert (got_status, body["error"]["code"]) == (status, code)
+
+
+def test_forecast_missing_forecast_file(call, data_dir):
+    (data_dir / "forecasts" / "test_day.json").unlink()
+    status, body = call("forecast_api", get({"scenario": "test_day"}))
+    assert status == 404 and body["error"]["code"] == "FORECAST_NOT_FOUND"
+
+
+def test_forecast_uses_scenarios_forecast_id(call, data_dir):
+    # The scenario points at a different forecast file by forecast_id.
+    other = dict(BASE_SCENARIO, id="other_day", forecast_id="other_forecast")
+    (data_dir / "scenarios" / "other_day.json").write_text(json.dumps(other))
+    (data_dir / "forecasts" / "other_forecast.json").write_text(json.dumps(forecast_dict([12000.0] * 24)))
+    status, body = call("forecast_api", get({"scenario": "other_day"}))
+    assert status == 200 and body["hours"][0]["p90"] == 12000.0
+
+
+# ---------------------------------------------------------------------------
 # POST /simulate
 # ---------------------------------------------------------------------------
 
