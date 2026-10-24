@@ -30,7 +30,7 @@
 - [ ] 6. `GET /forecast` in `forecast_api` (P1, same pattern as task 4)
   - _Requirements: 2.1, 2.2, 2.3_
 
-- [ ] 7. SAM template + first deploy
+- [x] 7. SAM template + first deploy (data upload waits for P1/P5 files in contract format)
   - Layer for `backend/shared`, one function per route, `Runs` / `Decisions` / `Counters` tables, S3 bucket, HTTP API with CORS + throttling
   - Upload `scenarios/*.json` and `forecasts/*.json` to the bucket
   - Smoke test the deployed `GET /scenarios` and `POST /simulate`

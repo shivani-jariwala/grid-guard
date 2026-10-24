@@ -1,0 +1,219 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  GridGuard backend: HTTP API + Lambdas + DynamoDB + S3.
+  Simulated only. The AI never controls real equipment and never sends alerts.
+
+# Deploy from backend/:  sam build && sam deploy   (settings in samconfig.toml)
+
+Parameters:
+  AllowedOrigins:
+    Type: CommaDelimitedList
+    Default: "http://localhost:5173"
+    Description: Browser origins allowed by CORS. Add the Amplify URL once P4 has it.
+  BedrockModelId:
+    Type: String
+    Default: ""
+    Description: Bedrock inference profile ID for the agent (P2 picks it). Empty until the agent is deployed.
+  DailyRunCap:
+    Type: Number
+    Default: 100
+    MinValue: 1
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures: [arm64]
+    MemorySize: 256
+    Timeout: 10
+    # Every function ships the whole backend/ folder (small), so `from shared.x import y`
+    # works the same way it does in the tests.
+    CodeUri: .
+    Environment:
+      Variables:
+        FORECAST_BUCKET: !Ref DataBucket
+        FORECAST_PREFIX: forecasts/
+        SCENARIO_PREFIX: scenarios/
+        RUNS_TABLE: !Ref RunsTable
+        DECISIONS_TABLE: !Ref DecisionsTable
+        COUNTERS_TABLE: !Ref CountersTable
+        BEDROCK_MODEL_ID: !Ref BedrockModelId
+        DAILY_RUN_CAP: !Ref DailyRunCap
+        AGENT_MAX_SIMULATE_CALLS: "5"
+        AGENT_MAX_TOOL_CALLS: "12"
+        LOG_LEVEL: INFO
+    Tags:
+      project: gridguard
+
+Resources:
+  # ---------------------------------------------------------------------------
+  # Storage
+  # ---------------------------------------------------------------------------
+
+  DataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      # scenarios/{id}.json (C2) and forecasts/{id}.json (C1). Private, encrypted.
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      Tags:
+        - Key: project
+          Value: gridguard
+
+  DataBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DataBucket
+      PolicyDocument:
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt DataBucket.Arn
+              - !Sub "${DataBucket.Arn}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+  RunsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: run_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: run_id
+          KeyType: HASH
+      Tags:
+        - Key: project
+          Value: gridguard
+
+  DecisionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: run_id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: run_id
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+      Tags:
+        - Key: project
+          Value: gridguard
+
+  CountersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      # One item per Pacific-time day: {day, runs}. Daily run cap (C5).
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: day
+          AttributeType: S
+      KeySchema:
+        - AttributeName: day
+          KeyType: HASH
+      Tags:
+        - Key: project
+          Value: gridguard
+
+  # ---------------------------------------------------------------------------
+  # HTTP API (no login: cost protection is throttling + the daily run cap)
+  # ---------------------------------------------------------------------------
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins: !Ref AllowedOrigins
+        AllowMethods: [GET, POST, OPTIONS]
+        AllowHeaders: [content-type]
+        MaxAge: 600
+      DefaultRouteSettings:
+        ThrottlingRateLimit: 20
+        ThrottlingBurstLimit: 40
+      Tags:
+        project: gridguard
+
+  # ---------------------------------------------------------------------------
+  # Functions (plain code only; the agent worker is added with spec 03)
+  # ---------------------------------------------------------------------------
+
+  ScenariosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: GET /scenarios
+      Handler: functions.scenarios_api.app.handler
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref DataBucket
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /scenarios
+
+  ResourcesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: GET /resources
+      Handler: functions.resources_api.app.handler
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref DataBucket
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /resources
+
+  SimulateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: POST /simulate (what-if, plain code)
+      Handler: functions.simulate_api.app.handler
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref DataBucket
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /simulate
+
+Outputs:
+  ApiUrl:
+    Description: Base URL for the dashboard (VITE_API_URL)
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  DataBucketName:
+    Description: Bucket for scenarios/ and forecasts/ (FORECAST_BUCKET)
+    Value: !Ref DataBucket
+  RunsTableName:
+    Value: !Ref RunsTable
+  DecisionsTableName:
+    Value: !Ref DecisionsTable
+  CountersTableName:
+    Value: !Ref CountersTable
