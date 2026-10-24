@@ -11,7 +11,7 @@
 | Backend | AWS Lambda (Python 3.12) + API Gateway HTTP API |
 | Infrastructure | AWS SAM (`backend/template.yaml`) |
 | Database | Amazon DynamoDB: `Runs`, `Decisions`, daily run counter |
-| Secrets / config | SSM Parameter Store: EIA API key, demo passcode |
+| Secrets / config | SSM Parameter Store: EIA API key (no demo passcode: the team dropped it, see rules.md) |
 | Frontend | React + Vite + TypeScript, Recharts, hosted on AWS Amplify Hosting |
 | Logs | Amazon CloudWatch |
 | Tests | pytest (backend, ML, number guard); frontend lint on save |
