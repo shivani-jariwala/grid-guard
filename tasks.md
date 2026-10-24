@@ -60,87 +60,16 @@ Planning only. No code yet. Each task has an ID, an owner, what it needs first, 
 
 ## Shared contracts (agree on these in Block 1)
 
-Everyone builds against these, so they must be written down before real work starts. Put them in `docs/contracts.md`. Changes after Block 1 need a heads-up in the team chat.
+Everyone builds against these. **The full contracts live in [`docs/contracts.md`](docs/contracts.md)**, which is the single source of truth. Changes after Block 1 need a heads-up in the team chat.
 
-| ID | Contract | Owner | Used by |
-|---|---|---|---|
-| C1 | Forecast JSON (`hour, p10, p50, p90, actual, caiso_forecast, temp_avg`) | P1 | P2, P3, P4 |
-| C2 | Scenario JSON (schema by P3, values by P5). Details below. | P3 + P5 | P2, P4 |
-| C3 | Plan JSON + pre-cool math. Details below. | P3 | P2, P4 |
-| C4 | Simulator result JSON + plan hash. Details below. | P3 (+ P2 for hashing) | P2, P4 |
-| C5 | Run record + API responses (`/runs`, `/runs/{id}`, `/audit`) | P3 | P4 |
-| C6 | Briefing shape (status, actions, rationale, risks, alert_text) + tool schemas | P2 | P1, P4 |
-
-### C2: Scenario (what's allowed)
-
-Pre-cool and supply fields changed. Everything else stays as in section 8 of the plan.
-
-```json
-{
-  "supply": {
-    "firm_mw": 0,
-    "firm_mw_source": "estimated from EIA actuals",
-    "solar_mw_by_hour": [],
-    "wind_mw_by_hour": []
-  },
-  "battery": {
-    "power_mw": 0, "energy_mwh": 0, "start_soc_pct": 90, "efficiency": 0.85,
-    "note": "ASSUMPTION: batteries assumed charged from midday solar. No recharge modeled."
-  },
-  "precool": {
-    "allowed_from_hours": [17, 18, 19, 20],
-    "allowed_to_hours": [13, 14, 15, 16],
-    "max_shift_mw": 0,
-    "rebound_pct": 30
-  }
-}
-```
-
-- `precool_hours` is gone. It was replaced by `allowed_from_hours` / `allowed_to_hours`.
-- `firm_mw` comes from P5-11 (decision 5).
-- Battery: no charging is modeled. The battery starts at `start_soc_pct` (decision 4).
-
-### C3: Plan (what we do) and the pre-cool math
-
-```json
-{
-  "precool": { "shift_mw": 0, "from_hours": [17, 18, 19], "to_hours": [13, 14, 15] }
-}
-```
-
-Validation (the simulator rejects the plan with a violation message if any rule fails):
-- `shift_mw` ≤ `max_shift_mw`
-- every `from_hours` hour is in `allowed_from_hours`
-- every `to_hours` hour is in `allowed_to_hours`
-
-Pre-cool math. Pre-cooling moves energy. It doesn't remove it.
-
-```
-shifted_energy = shift_mw × len(from_hours)
-for h in from_hours: demand[h] −= shift_mw
-for h in to_hours:   demand[h] += shifted_energy / len(to_hours)
-rebound_hour = last(from_hours) + 1
-if rebound_hour ≤ 23: demand[rebound_hour] += shift_mw × rebound_pct / 100
-else: ignore the rebound
-```
-
-Full demand per hour:
-
-```
-demand_net[h] = p90[h] + precool_delta[h] − dr_mw[h] − alert_reduction_LOW[h]
-```
-
-### C4: Simulator result and plan hash
-
-- Same as before: hourly status, lowest margin and its hour, violations, disruption score.
-- The result also includes `plan_hash` and `all_green` (true/false).
-- **Hashing happens on the server, never in the model:**
-  - `simulate` computes SHA-256 of the canonical plan JSON (sorted keys, no whitespace).
-  - It stores `{plan_hash, result}` in the run record (`Runs.simulations[]`, see C5).
-  - `submit_plan` recomputes the hash from the plan it receives. It accepts the plan only if:
-    - the hash matches a plan already simulated **in this run**, and
-    - that result was `all_green`, or the submitted status is `CANNOT_MEET_TARGET`.
-  - Any hash sent by the model is ignored.
+| ID | Contract | Owner | Used by | Status |
+|---|---|---|---|---|
+| C1 | Forecast JSON | P1 | P2, P3, P4 | Draft, P1 to confirm |
+| C2 | Scenario JSON (schema by P3, values by P5) | P3 + P5 | P2, P4 | Agreed |
+| C3 | Plan JSON, canonical form, validation rules, pre-cool math | P3 | P2, P4 | Agreed |
+| C4 | Simulator result, plan hash, submit gate | P3 (+ P2 for the gate) | P2, P4 | Agreed |
+| C5 | Run record, DynamoDB tables (`Runs`, `Decisions`, `Counters`), API | P3 | P4 | Agreed |
+| C6 | Agent tools + briefing | P2 | P1, P4 | Draft, P2 to confirm |
 
 ---
 
@@ -189,6 +118,7 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
   - Progress: Claude confirmed in `us-east-1` (see P2-01). `ListGuardrails` works (0 guardrails so far).
   - Left: creating a guardrail and the contextual grounding check aren't tested yet (do it in P2-10). Quotas not checked.
 - [ ] **P2-04** Draft system prompt v0 and JSON schemas for the 5 tools. Write C6.
+  - P3 drafted C6 in `docs/contracts.md`. Review it, change what you need, and mark it agreed.
 
 ### P3 (Simulator + backend)
 - [x] **P3-01** Create the repo structure (folder layout from section 6), open it in Kiro, and push it to GitHub.
@@ -200,7 +130,8 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
   - Done when: a placeholder `GET /scenarios` returns 200.
 - [ ] **P3-05** Store EIA key in SSM Parameter Store.
   - Needs: P1-01
-- [ ] **P3-06** Write contracts C2–C5, including the C2/C3/C4 details above.
+- [x] **P3-06** Write contracts C2–C5 in `docs/contracts.md`.
+  - Done. C1 and C6 are also drafted there, for P1 and P2 to confirm.
 - [ ] **P3-07** Kiro hook: run pytest when backend files are saved.
 - [ ] **P3-15** Simulator stub with the **final function signature**. It returns a fake C4 result (with `plan_hash` and `all_green`), so P2 can build tools before P3-08 is done.
   - Done when: P2 can import it and call it with a C3 plan.
@@ -404,5 +335,5 @@ These IDs are retired and won't be reused.
 ### New (small, settle in Block 2)
 
 8. **Battery double counting in `firm_mw` (P5).** Peak-hour demand − solar − wind also includes whatever CAISO batteries were discharging at that hour. If we then add our battery resource on top, that battery output is counted twice. If EIA or CAISO has battery output for that hour, subtract it from `firm_mw`. If not, note it as a limitation.
-9. **Hash normalization (P2 + P3).** Sorted keys don't make `500` and `500.0` hash the same, or `[17,18,19]` and `[19,18,17]`. Proposal: hash the plan after it's parsed into the `models.py` plan object (numbers normalized, hour lists sorted), not the raw model output.
-10. **Overlapping hours (P3).** Should a plan be rejected if `from_hours` and `to_hours` overlap, or if the rebound hour falls inside `to_hours`? Proposal: reject overlaps. The allowed lists in C2 don't overlap anyway.
+9. ~~**Hash normalization**~~ **Resolved (proposal adopted):** the plan is normalized when parsed (floats rounded to 3 decimals, hour lists sorted, empty/off sections cleared), then hashed. See "Canonical form" in C3. Shout if you disagree.
+10. ~~**Overlapping hours**~~ **Resolved (proposal adopted):** overlapping or duplicate pre-cool hours are rejected (`PRECOOL_HOURS_OVERLAP`). With the C2 allowed lists, the rebound hour can never land inside `to_hours`.

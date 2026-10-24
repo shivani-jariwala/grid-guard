@@ -27,7 +27,7 @@
 
 ## Shared contracts
 
-The data shapes between areas (forecast, scenario, plan, simulator result, run record, briefing) are contracts C1–C6 in `tasks.md` (later `docs/contracts.md`). Build against them. Don't change them without telling the team.
+The data shapes between areas (forecast, scenario, plan, simulator result, run record, briefing) are contracts C1–C6 in `docs/contracts.md`. Build against them. Don't change them without telling the team.
 
 ## Coding conventions
 
