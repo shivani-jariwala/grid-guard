@@ -1,0 +1,7 @@
+# Tooling config only (GridGuard is not a pip package).
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Lets tests import backend code as `from shared.simulator import ...`,
+# the same way the Lambdas will.
+pythonpath = ["backend"]

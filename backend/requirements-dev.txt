@@ -1,0 +1,4 @@
+# Local development and tests for backend/ (not deployed to Lambda).
+# Install: pip install -r backend/requirements-dev.txt
+boto3==1.42.97
+pytest==8.4.2
