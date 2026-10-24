@@ -146,7 +146,8 @@ demand_net[h] = p90[h] + precool_delta[h] − dr_mw[h] − alert_reduction_LOW[h
 - [ ] **P2-04** Draft system prompt v0 and JSON schemas for the 5 tools. Write C6.
 
 ### P3 (Simulator + backend)
-- [ ] **P3-01** Create the repo with the folder layout from section 6. Open it in Kiro.
+- [x] **P3-01** Create the repo structure (folder layout from section 6), open it in Kiro, and push it to GitHub.
+  - Done: [shivani-jariwala/grid-guard](https://github.com/shivani-jariwala/grid-guard), commit `737b876` on `main`.
 - [ ] **P3-02** Steering files: `product.md`, `tech.md`, `rules.md` (from sections 1–5 and 13).
 - [ ] **P3-03** Kiro specs: create the 5 spec folders. Each owner runs the spec flow (requirements → design → tasks) for their area:
   - 01 data-forecast → P1 · 02 simulator → P3 · 03 agent → P2 · 04 api-backend → P3 · 05 dashboard → P4
