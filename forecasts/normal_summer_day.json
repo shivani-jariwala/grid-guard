@@ -1,0 +1,225 @@
+{
+  "forecast_id": "normal_summer_day",
+  "date": "2022-07-28",
+  "timezone": "America/Los_Angeles",
+  "temp_offset_f": 0.0,
+  "model_version": "xgb-quantile-ridge-cqr-v1",
+  "hours": [
+    {
+      "hour": 0,
+      "p10": 29289,
+      "p50": 30036,
+      "p90": 31212,
+      "actual": 32118,
+      "caiso_forecast": 29312,
+      "temp_avg": 68.9
+    },
+    {
+      "hour": 1,
+      "p10": 27494,
+      "p50": 28432,
+      "p90": 29228,
+      "actual": 29574,
+      "caiso_forecast": 27306,
+      "temp_avg": 67.6
+    },
+    {
+      "hour": 2,
+      "p10": 25980,
+      "p50": 26632,
+      "p90": 27630,
+      "actual": 27788,
+      "caiso_forecast": 25996,
+      "temp_avg": 66.6
+    },
+    {
+      "hour": 3,
+      "p10": 24947,
+      "p50": 25398,
+      "p90": 26567,
+      "actual": 26807,
+      "caiso_forecast": 25006,
+      "temp_avg": 65.7
+    },
+    {
+      "hour": 4,
+      "p10": 24246,
+      "p50": 24702,
+      "p90": 25774,
+      "actual": 26184,
+      "caiso_forecast": 24424,
+      "temp_avg": 64.7
+    },
+    {
+      "hour": 5,
+      "p10": 24195,
+      "p50": 24603,
+      "p90": 25646,
+      "actual": 25392,
+      "caiso_forecast": 24472,
+      "temp_avg": 65.2
+    },
+    {
+      "hour": 6,
+      "p10": 24342,
+      "p50": 24728,
+      "p90": 25677,
+      "actual": 24986,
+      "caiso_forecast": 25212,
+      "temp_avg": 64.6
+    },
+    {
+      "hour": 7,
+      "p10": 25052,
+      "p50": 25603,
+      "p90": 26658,
+      "actual": 25719,
+      "caiso_forecast": 26307,
+      "temp_avg": 65.2
+    },
+    {
+      "hour": 8,
+      "p10": 25811,
+      "p50": 26605,
+      "p90": 27901,
+      "actual": 26665,
+      "caiso_forecast": 27424,
+      "temp_avg": 67.4
+    },
+    {
+      "hour": 9,
+      "p10": 26817,
+      "p50": 28053,
+      "p90": 29035,
+      "actual": 28116,
+      "caiso_forecast": 27809,
+      "temp_avg": 70.7
+    },
+    {
+      "hour": 10,
+      "p10": 27125,
+      "p50": 28232,
+      "p90": 30019,
+      "actual": 28796,
+      "caiso_forecast": 27865,
+      "temp_avg": 75.3
+    },
+    {
+      "hour": 11,
+      "p10": 27405,
+      "p50": 28896,
+      "p90": 30586,
+      "actual": 28926,
+      "caiso_forecast": 28122,
+      "temp_avg": 80.0
+    },
+    {
+      "hour": 12,
+      "p10": 27503,
+      "p50": 28941,
+      "p90": 30564,
+      "actual": 28876,
+      "caiso_forecast": 28864,
+      "temp_avg": 84.2
+    },
+    {
+      "hour": 13,
+      "p10": 28765,
+      "p50": 30134,
+      "p90": 31855,
+      "actual": 29473,
+      "caiso_forecast": 29770,
+      "temp_avg": 88.3
+    },
+    {
+      "hour": 14,
+      "p10": 30324,
+      "p50": 31503,
+      "p90": 33279,
+      "actual": 30286,
+      "caiso_forecast": 31246,
+      "temp_avg": 90.9
+    },
+    {
+      "hour": 15,
+      "p10": 31772,
+      "p50": 33127,
+      "p90": 34588,
+      "actual": 32186,
+      "caiso_forecast": 32900,
+      "temp_avg": 91.9
+    },
+    {
+      "hour": 16,
+      "p10": 33357,
+      "p50": 35029,
+      "p90": 36596,
+      "actual": 33531,
+      "caiso_forecast": 34630,
+      "temp_avg": 91.9
+    },
+    {
+      "hour": 17,
+      "p10": 34514,
+      "p50": 36206,
+      "p90": 37827,
+      "actual": 34946,
+      "caiso_forecast": 35974,
+      "temp_avg": 89.9
+    },
+    {
+      "hour": 18,
+      "p10": 35721,
+      "p50": 37613,
+      "p90": 38834,
+      "actual": 36437,
+      "caiso_forecast": 37128,
+      "temp_avg": 87.4
+    },
+    {
+      "hour": 19,
+      "p10": 35837,
+      "p50": 38336,
+      "p90": 39183,
+      "actual": 37268,
+      "caiso_forecast": 37383,
+      "temp_avg": 83.6
+    },
+    {
+      "hour": 20,
+      "p10": 35070,
+      "p50": 37591,
+      "p90": 38460,
+      "actual": 37589,
+      "caiso_forecast": 36735,
+      "temp_avg": 78.9
+    },
+    {
+      "hour": 21,
+      "p10": 34825,
+      "p50": 36960,
+      "p90": 37468,
+      "actual": 36842,
+      "caiso_forecast": 35889,
+      "temp_avg": 75.4
+    },
+    {
+      "hour": 22,
+      "p10": 33396,
+      "p50": 35344,
+      "p90": 35813,
+      "actual": 35977,
+      "caiso_forecast": 34521,
+      "temp_avg": 73.2
+    },
+    {
+      "hour": 23,
+      "p10": 31528,
+      "p50": 33111,
+      "p90": 33683,
+      "actual": 34639,
+      "caiso_forecast": 32149,
+      "temp_avg": 70.5
+    }
+  ]
+}
