@@ -1,14 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, Route, Routes } from "react-router-dom";
-import ScrollBorder from "./components/ScrollBorder";
 import Forecast from "./pages/Forecast";
-import Weather from "./pages/Weather";
-import Process from "./pages/Process";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
 
 /**
- * App routes. Five pages: Forecast (landing), Weather, Process, About, Contact.
+ * App routes. Single page: Forecast (Home).
  *
  * The floating nav reacts to scroll *direction*, not position (like a Smith
  * trigger with a dead zone so small jitters don't flip it):
@@ -60,7 +55,6 @@ export default function App() {
 
   return (
     <div className="app">
-      <ScrollBorder />
       <header
         className={`topbar${compact ? " topbar-compact" : ""}${
           hidden ? " topbar-hidden" : ""
@@ -70,23 +64,12 @@ export default function App() {
           <img src="/logo.svg" alt="" className="brand-logo" />
           <span>GridGuard</span>
         </Link>
-        <nav className="nav">
-          <Link to="/forecast">Forecast</Link>
-          <Link to="/weather">Weather</Link>
-          <Link to="/process">Process</Link>
-          <Link to="/about">About</Link>
-          <Link to="/contact">Contact</Link>
-        </nav>
       </header>
 
       <main className="content">
         <Routes>
           <Route path="/" element={<Navigate to="/forecast" replace />} />
           <Route path="/forecast" element={<Forecast />} />
-          <Route path="/weather" element={<Weather />} />
-          <Route path="/process" element={<Process />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
           <Route path="*" element={<Navigate to="/forecast" replace />} />
         </Routes>
       </main>

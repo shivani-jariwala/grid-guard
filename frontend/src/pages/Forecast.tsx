@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Area,
   CartesianGrid,
@@ -10,12 +11,14 @@ import {
   YAxis,
 } from "recharts";
 import { getForecast } from "../api/forecast";
+import Agent from "./Agent";
 
 /**
- * Forecast screen (task P4-06).
- * Reads the pre-computed forecast from the bundled forecasts JSON (contract C1)
- * and renders a risk-window banner, a P10-P90 band with the P50 line and the
- * CAISO day-ahead forecast, and an hourly table. No backend.
+ * Home / Forecast screen.
+ * Top: the pre-computed forecast (contract C1) — risk-window banner, P10-P90
+ * band with the P50 line and CAISO day-ahead, and an hourly table.
+ * Below: the live agent flow (Make a plan, Operator briefing, Your decision),
+ * embedded from the Agent component.
  */
 
 function hourLabel(hour: number): string {
@@ -30,6 +33,7 @@ function fmtMw(mw: number): string {
 
 export default function Forecast() {
   const data = getForecast();
+  const [showHourly, setShowHourly] = useState(false);
 
   const chartData = data.hours.map((h) => ({
     label: hourLabel(h.hour),
@@ -42,7 +46,7 @@ export default function Forecast() {
 
   return (
     <section className="page forecast">
-      <h1>Forecast</h1>
+      <h1>Home</h1>
       <p className="muted">
         Hourly demand for California on Sept 6, 2022, low to high (P10&ndash;P90).
       </p>
@@ -62,20 +66,21 @@ export default function Forecast() {
             data={chartData}
             margin={{ top: 10, right: 20, bottom: 0, left: 0 }}
           >
-            <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
-            <XAxis dataKey="label" stroke="#94a3b8" fontSize={11} interval={2} />
+            <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
+            <XAxis dataKey="label" stroke="#5b6b7b" fontSize={11} interval={2} />
             <YAxis
-              stroke="#94a3b8"
+              stroke="#5b6b7b"
               fontSize={11}
               tickFormatter={(v) => `${Math.round(v / 1000)}k`}
               domain={["dataMin - 2000", "dataMax + 2000"]}
             />
             <Tooltip
               contentStyle={{
-                background: "#1e293b",
-                border: "1px solid #334155",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
                 borderRadius: 8,
-                color: "#e2e8f0",
+                color: "#1b2430",
+                boxShadow: "0 1px 3px rgba(16,24,40,.12)",
               }}
               formatter={(value: number, name: string) => {
                 if (name === "band") return [null, null];
@@ -84,9 +89,9 @@ export default function Forecast() {
             />
             <Legend
               payload={[
-                { value: "P10–P90 band", type: "rect", id: "band", color: "#38bdf8" },
-                { value: "P50 (median)", type: "line", id: "p50", color: "#f8fafc" },
-                { value: "CAISO day-ahead", type: "line", id: "caiso", color: "#fbbf24" },
+                { value: "P10–P90 band", type: "rect", id: "band", color: "#1f6feb" },
+                { value: "P50 (median)", type: "line", id: "p50", color: "#1f6feb" },
+                { value: "CAISO day-ahead", type: "line", id: "caiso", color: "#5b6b7b" },
               ]}
             />
             <Area dataKey="p10" stackId="band" stroke="none" fill="none" />
@@ -94,16 +99,16 @@ export default function Forecast() {
               dataKey="band"
               stackId="band"
               stroke="none"
-              fill="#38bdf8"
-              fillOpacity={0.25}
+              fill="#1f6feb"
+              fillOpacity={0.14}
               name="band"
             />
-            <Line dataKey="p50" stroke="#f8fafc" strokeWidth={2} dot={false} name="p50" />
+            <Line dataKey="p50" stroke="#1f6feb" strokeWidth={2} dot={false} name="p50" />
             <Line
               dataKey="caiso"
-              stroke="#fbbf24"
+              stroke="#5b6b7b"
               strokeWidth={1.5}
-              strokeDasharray="4 3"
+              strokeDasharray="6 4"
               dot={false}
               name="caiso"
             />
@@ -111,40 +116,58 @@ export default function Forecast() {
         </ResponsiveContainer>
       </div>
 
-      <h2>Hourly detail</h2>
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Hour</th>
-              <th>Temp (°F)</th>
-              <th>P10</th>
-              <th>P50</th>
-              <th>P90</th>
-              <th>Actual</th>
-              <th>CAISO</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.hours.map((h) => (
-              <tr key={h.hour} className={h.hour === data.peakHour ? "peak-row" : ""}>
-                <td>{hourLabel(h.hour)}</td>
-                <td>{h.temp_avg}</td>
-                <td>{h.p10.toLocaleString("en-US")}</td>
-                <td>{h.p50.toLocaleString("en-US")}</td>
-                <td>{h.p90.toLocaleString("en-US")}</td>
-                <td>{h.actual.toLocaleString("en-US")}</td>
-                <td>{h.caiso_forecast.toLocaleString("en-US")}</td>
+      <button
+        type="button"
+        className="collapse-toggle"
+        onClick={() => setShowHourly((v) => !v)}
+        aria-expanded={showHourly}
+        aria-controls="hourly-detail"
+      >
+        <span className={`chevron${showHourly ? " open" : ""}`} aria-hidden="true">
+          ▶
+        </span>
+        <h2>Hourly detail</h2>
+      </button>
+
+      {showHourly && (
+        <div className="table-wrap" id="hourly-detail">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Hour</th>
+                <th>Temp (°F)</th>
+                <th>P10</th>
+                <th>P50</th>
+                <th>P90</th>
+                <th>Actual</th>
+                <th>CAISO</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {data.hours.map((h) => (
+                <tr key={h.hour} className={h.hour === data.peakHour ? "peak-row" : ""}>
+                  <td>{hourLabel(h.hour)}</td>
+                  <td>{h.temp_avg}</td>
+                  <td>{h.p10.toLocaleString("en-US")}</td>
+                  <td>{h.p50.toLocaleString("en-US")}</td>
+                  <td>{h.p90.toLocaleString("en-US")}</td>
+                  <td>{h.actual.toLocaleString("en-US")}</td>
+                  <td>{h.caiso_forecast.toLocaleString("en-US")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <p className="source-note">
         <strong>Source:</strong> {data.description}
         {data.stub ? " (stub data)" : ""}
       </p>
+
+      <hr className="section-divider" />
+
+      <Agent />
     </section>
   );
 }
