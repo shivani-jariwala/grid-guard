@@ -264,8 +264,18 @@ Rule 2 is stricter than decision 6 as written: an invalid plan can't be submitte
 | `trace` | list | `{step, tool, input, output_summary, at, duration_ms}` per tool call. `output_summary` ≤ 500 chars. |
 | `counts` | map | `{simulate_calls, tool_calls}` |
 | `final` | map or null | `{status, plan_hash, plan, result, briefing}` (briefing = C6) |
-| `flags` | list | `{code, detail}`, e.g. `NUMBER_MISMATCH`, `GUARDRAIL_INTERVENED`, `LOOP_LIMIT` |
-| `error` | map or null | `{code, message}` when `status = failed` |
+| `flags` | list | `{code, detail}`, e.g. `NUMBER_MISMATCH`, `GUARDRAIL_INTERVENED`, `LOOP_LIMIT`, `STUB_AGENT` |
+| `error` | map or null | `{code, message}` when `status = failed`. Codes: `WORKER_START_FAILED`, `DATA_ERROR`, `SUBMIT_REFUSED`, `INTERNAL_ERROR` |
+
+**Shared helpers for the agent worker (P2)** are in `backend/shared/runs.py`, so every worker writes runs the same way:
+- `RunStore.get` / `save` / `fail`;
+- `add_trace`, `add_simulation`, `summary_of`;
+- `check_submit(run, plan, status)`: the C4 submit gate. It recomputes the hash from the plan, and the model's hash is never used.
+
+**Stub worker (temporary):** until P2's agent is deployed, `POST /runs` starts `agent_worker_stub`.
+- It plays the same tool sequence with simple rules (no-action → battery → demand response + battery) and the real simulator. It makes no Bedrock call.
+- It marks every run with the `STUB_AGENT` flag and sets `model_id` to `stub-agent`, so it can't be mistaken for the real agent.
+- To switch to P2's agent, point `AgentStartFunction`'s `WORKER_FUNCTION_NAME` in `backend/template.yaml` at the new function.
 
 Size check: 5 simulations × ~5 KB + a 12-step trace stays well under DynamoDB's 400 KB item limit.
 
@@ -347,5 +357,5 @@ API Gateway's own throttling returns `429` with `{"message": "Too Many Requests"
 }
 ```
 
-- **`actions` is built by code from the accepted plan and its result, not written by the model.** That keeps the action table's numbers out of the number guard's scope.
+- **`actions` is built by code from the accepted plan and its result, not written by the model.** That keeps the action table's numbers out of the number guard's scope. Use `build_actions(scenario, plan)` from `backend/shared/briefing.py`.
 - `rationale`, `risks` and `alert_text` are the model's words. The number guard checks every number in them against the tool outputs of this run. Mismatches go to `number_check.mismatches` as `{text, value}` and add a `NUMBER_MISMATCH` flag to the run.

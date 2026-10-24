@@ -36,7 +36,7 @@
   - Smoke test the deployed `GET /scenarios` and `POST /simulate`
   - _Requirements: 8.1, 10.1, 10.2_
 
-- [ ] 8. `POST /runs` and `GET /runs/{run_id}`
+- [x] 8. `POST /runs` and `GET /runs/{run_id}` (plus a temporary stub worker until the real agent lands)
   - Atomic daily counter in `Counters`, save the run, async invoke of `agent_worker`, failure path
   - Handler tests with fake DynamoDB / Lambda clients
   - _Requirements: 5.1, 5.2, 5.3, 6.1, 6.2, 8.2_
