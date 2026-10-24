@@ -23,6 +23,9 @@ ml/artifacts/
 # --- AWS SAM build output ---
 .aws-sam/
 
+# --- Backend local dev data store (JSON stand-in for DynamoDB) ---
+backend/.data/
+
 # --- Frontend ---
 node_modules/
 frontend/dist/
