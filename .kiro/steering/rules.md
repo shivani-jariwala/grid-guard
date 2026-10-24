@@ -15,9 +15,8 @@
 
 ## Security
 
-- No secrets in code or in the repo. Use SSM Parameter Store (EIA key, demo passcode).
-- Every API route goes through the Lambda authorizer (`x-demo-passcode`).
-- Keep throttling, the daily run cap and the budget alarm in place.
+- No secrets in code or in the repo. Use SSM Parameter Store (EIA key).
+- Security is cost protection only (judges watch a video, they don't use the app). Keep HTTP API throttling, the daily run cap (100) and the Budgets alarm in place. No login: production would add Cognito.
 - No personal data. Store the operator name only.
 
 ## Working in this repo

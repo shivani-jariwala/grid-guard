@@ -41,8 +41,12 @@ Weather + past demand
   → [5] Audit log: who approved what, and when
 ```
 
-## Goals for the demo
+## Submission
 
-- Working, deployed app with a real agent, real simulator and real forecasts.
-- Show where it fails: forecast error, agent eval score, a "CANNOT_MEET_TARGET" case, and an About and limits page.
+Judging is a 5-minute video only (no live demo), due Saturday 10:30 AM. Rubric: persona + need 20, working app end-to-end 25, Bedrock doing real work 20, understand what you built 15, polish 10, above and beyond 10. Gate: Bedrock must do real work.
+
+## Goals
+
+- Working, deployed app with 3 screens (Forecast, Agent run, Briefing + approval with an audit log panel), a real agent, a real simulator and real forecasts.
+- Show where it fails: forecast error, agent eval score (10 cases), and the `sept6_2022_plus5F` "CANNOT_MEET_TARGET" case. Limits and assumptions go in the README and the video, not a separate screen.
 - Something an operator would trust: number provenance, "Draft only. Not sent." labels, audit log, labelled assumptions.
