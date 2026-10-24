@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="GridGuard">
+  <defs>
+    <linearGradient id="shield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffb020"/>
+      <stop offset="0.55" stop-color="#ff7a00"/>
+      <stop offset="1" stop-color="#e8550c"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd257"/>
+      <stop offset="1" stop-color="#ff8c1a"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#fff2cc"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Shield outer (rim) -->
+  <path d="M256 24 L456 92 V250 C456 370 372 452 256 492 C140 452 56 370 56 250 V92 Z"
+        fill="url(#rim)"/>
+  <!-- Shield inner body -->
+  <path d="M256 60 L424 117 V250 C424 352 352 422 256 458 C160 422 88 352 88 250 V117 Z"
+        fill="url(#shield)"/>
+
+  <!-- Waveform / pulse ring through the middle -->
+  <g filter="url(#glow)" fill="none" stroke="#fff2cc" stroke-width="12"
+     stroke-linecap="round" stroke-linejoin="round" opacity="0.92">
+    <!-- circular arc -->
+    <path d="M150 250 a106 106 0 1 1 212 0" opacity="0.55"/>
+    <!-- heartbeat / demand waveform -->
+    <path d="M120 262 h60 l22 -46 l34 92 l34 -92 l22 46 h60"/>
+  </g>
+
+  <!-- Lightning bolt -->
+  <path d="M286 110 L196 288 H252 L226 404 L330 236 H270 Z"
+        fill="url(#bolt)" filter="url(#glow)"/>
+</svg>
