@@ -1,0 +1,23 @@
+# SAM CLI settings for GridGuard. Run from backend/:  sam build && sam deploy
+# Uses the Team 31 event account through the `gridguard` AWS profile (~/.aws).
+version = 0.1
+
+[default.global.parameters]
+stack_name = "gridguard"
+region = "us-east-1"
+profile = "gridguard"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.validate.parameters]
+lint = true
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+resolve_s3 = true
+s3_prefix = "gridguard"
+confirm_changeset = false
+fail_on_empty_changeset = false
+tags = "project=\"gridguard\""

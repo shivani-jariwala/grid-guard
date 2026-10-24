@@ -53,6 +53,15 @@ python -m pytest -q          # simulator, model and config tests
 
 The Kiro hook in `.kiro/hooks/` reruns these tests whenever you save a `backend/` or `tests/` Python file.
 
+## Deploy the backend (AWS SAM)
+
+```bash
+cd backend
+sam build && sam deploy      # stack "gridguard" in us-east-1, uses the gridguard AWS profile
+```
+
+Settings live in `backend/samconfig.toml`. The API URL and bucket name are printed as stack outputs.
+
 ## Team workflow
 
 - `main` is protected. Never push to it directly.
