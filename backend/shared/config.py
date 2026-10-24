@@ -93,6 +93,7 @@ class Settings:
     forecast_prefix: str
     scenario_prefix: str
     eia_api_key_param: str  # SSM parameter NAME, not the key
+    worker_function_name: str  # Lambda that runs the agent (stub until P2's worker is deployed)
     daily_run_cap: int
     agent_max_simulate_calls: int
     agent_max_tool_calls: int
@@ -133,6 +134,7 @@ def load_settings(env: Mapping[str, str]) -> Settings:
         forecast_prefix=env.get("FORECAST_PREFIX", "forecasts/"),
         scenario_prefix=env.get("SCENARIO_PREFIX", "scenarios/"),
         eia_api_key_param=env.get("EIA_API_KEY_PARAM", "/gridguard/eia-api-key"),
+        worker_function_name=env.get("WORKER_FUNCTION_NAME", ""),
         daily_run_cap=_int(env, "DAILY_RUN_CAP", 100),
         agent_max_simulate_calls=_int(env, "AGENT_MAX_SIMULATE_CALLS", 5),
         agent_max_tool_calls=_int(env, "AGENT_MAX_TOOL_CALLS", 12),

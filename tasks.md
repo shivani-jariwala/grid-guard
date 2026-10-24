@@ -246,12 +246,19 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
     - `shared/data.py`: reads scenarios and forecasts from the repo folders locally, or from S3 when `FORECAST_BUCKET` is set.
     - Tested with fake API Gateway events in `tests/test_handlers.py` and `tests/test_api_shared.py`.
   - **P1:** `forecast_api` can follow the same pattern as `resources_api`, using `load_forecast()` from `shared/data.py`.
-- [ ] **P3-11** `POST /runs` (`agent_start`: save "running", invoke worker async) and `GET /runs/{run_id}`.
+- [x] **P3-11** `POST /runs` (`agent_start`: save "running", invoke worker async) and `GET /runs/{run_id}`.
+  - Done and deployed. `POST /runs` returns `202 {run_id}` right away; `GET /runs/{id}` returns the full run (C5).
+  - A **temporary stub worker** (`agent_worker_stub`, no Bedrock, flagged `STUB_AGENT`) fills in the run, so P4 can build the live Agent run screen now.
+  - Live test: a run finished in about 11 seconds, going from RED to ALL_GREEN in 4 simulate calls.
+  - **P2:** your worker can reuse `RunStore`, `add_trace`, `add_simulation` and `check_submit` from `shared/runs.py`, plus `build_actions` from `shared/briefing.py`. To switch over, point `WORKER_FUNCTION_NAME` in `template.yaml` at your function.
 - [ ] **P3-12** Worker timeout 5 min, least-privilege IAM per Lambda, CORS limited to the Amplify domain.
-- [ ] **P3-17** Cost protection (decision 7):
+- [x] **P3-17** Cost protection (decision 7):
   - HTTP API stage throttling, set very low on `POST /runs`;
   - a daily run cap of 100, counted in DynamoDB and checked in `agent_start`. Over the cap, return a clear error.
   - Done when: run #101 of the day is refused with a clear message, and throttling shows up under load.
+  - Done and deployed.
+    - The daily cap is an atomic counter in `Counters` that resets at Pacific midnight. Over the cap, the API returns `429 DAILY_LIMIT_REACHED`, and bad requests don't use up the cap. This is covered by tests.
+    - Throttling is 20 req/s (burst 40) on every route, and 1 req/s (burst 2) on `POST /runs`. Both are confirmed on the live API stage.
 
 ### P4
 - [ ] **P4-07** Screen 2 (Agent run): "Make a plan" button, poll every 2 s, attempts timeline, 24-hour strip per attempt with labels, room for the Bedrock trace panel (P2-15), loading and error states (including "daily limit reached").
