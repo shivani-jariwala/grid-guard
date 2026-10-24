@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Run backend tests on save",
+      "trigger": "PostFileSave",
+      "description": "P3-07: runs the pytest suite (simulator, models) whenever a backend or test Python file is saved. Needs the project .venv (pip install -r backend/requirements-dev.txt).",
+      "matcher": "(backend/.*\\.py|tests/.*\\.py)$",
+      "action": {
+        "type": "command",
+        "command": ".venv/bin/python -m pytest -q",
+        "timeout": 120
+      }
+    }
+  ]
+}
