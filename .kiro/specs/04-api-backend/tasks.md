@@ -27,7 +27,7 @@
   - Handler tests, including a bad `margin_target_pct` and net demand ≤ 0 (`DATA_ERROR`)
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 6. `GET /forecast` in `forecast_api` (P1, same pattern as task 4)
+- [x] 6. `GET /forecast` in `forecast_api` (built by Snehil, P1, with the task 4 pattern)
   - _Requirements: 2.1, 2.2, 2.3_
 
 - [x] 7. SAM template + first deploy (data upload waits for P1/P5 files in contract format)
@@ -41,11 +41,11 @@
   - Handler tests with fake DynamoDB / Lambda clients
   - _Requirements: 5.1, 5.2, 5.3, 6.1, 6.2, 8.2_
 
-- [ ] 9. `POST /runs/{run_id}/decision` and `GET /audit`
+- [x] 9. `POST /runs/{run_id}/decision` and `GET /audit`
   - Validation, `409 RUN_NOT_DONE`, newest-first audit with a limit
   - Handler tests
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 10. Hardening pass
+- [x] 10. Hardening pass
   - Check every route against the error table in the design, plus log hygiene (no secrets, no full bodies)
   - _Requirements: 9.1, 9.3, 9.4_

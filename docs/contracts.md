@@ -275,7 +275,11 @@ Rule 2 is stricter than decision 6 as written: an invalid plan can't be submitte
 **Stub worker (temporary):** until P2's agent is deployed, `POST /runs` starts `agent_worker_stub`.
 - It plays the same tool sequence with simple rules (no-action → battery → demand response + battery) and the real simulator. It makes no Bedrock call.
 - It marks every run with the `STUB_AGENT` flag and sets `model_id` to `stub-agent`, so it can't be mistaken for the real agent.
-- To switch to P2's agent, point `AgentStartFunction`'s `WORKER_FUNCTION_NAME` in `backend/template.yaml` at the new function.
+- **To switch to P2's agent:** put the worker in `backend/functions/agent_worker/app.py` (a `handler(event, context)` that gets `{"run_id": ...}`), then deploy with `sam deploy --parameter-overrides AgentWorker=bedrock`.
+  - That creates `AgentWorkerFunction` (5-minute timeout, Bedrock + Guardrail permissions) and points `POST /runs` at it.
+  - Runs then record the real `BEDROCK_MODEL_ID`.
+  - To go back: `AgentWorker=stub`.
+- **Timeouts:** a run still `running` more than 6 minutes after `created_at` is shown by `GET /runs/{id}` as `failed` with `RUN_TIMED_OUT`. The stored record isn't changed.
 
 Size check: 5 simulations × ~5 KB + a 12-step trace stays well under DynamoDB's 400 KB item limit.
 
@@ -287,8 +291,12 @@ Size check: 5 simulations × ~5 KB + a 12-step trace stays well under DynamoDB's
 | `operator_name` | string | Required, 1–60 chars |
 | `decision` | string | `APPROVE` · `EDIT` · `REJECT` |
 | `plan_hash` | string | The plan the decision applies to |
-| `edits` | map | `{alert_text}` (≤ 160 chars), only for `EDIT` |
-| `note` | string | Optional, ≤ 500 chars |
+| `edits` | map or null | `{alert_text}` (1–160 chars). Required for `EDIT`, not allowed otherwise. |
+| `note` | string or null | Optional, ≤ 500 chars |
+| `scenario_id` | string | Copied from the run, for the audit panel |
+| `final_status` | string | The run's `ALL_GREEN` / `CANNOT_MEET_TARGET` at decision time |
+
+`timestamp` has microseconds (`2026-10-24T07:00:00.123456Z`), so two decisions on one run never collide. Unknown fields in the request are rejected with `400`.
 
 **`Counters`** (partition key `day`, e.g. `2026-10-23` in Pacific time)
 
@@ -302,7 +310,7 @@ Errors from our Lambdas always look like:
 { "error": { "code": "SCENARIO_NOT_FOUND", "message": "No scenario called 'abc'." } }
 ```
 
-API Gateway's own throttling returns `429` with `{"message": "Too Many Requests"}`. The frontend handles both shapes.
+API Gateway's own throttling returns `429` with `{"message": "Too Many Requests"}`. The frontend handles both shapes. Request bodies over 64 KB get `413 PAYLOAD_TOO_LARGE`.
 
 | Method + path | Request | Success | Errors |
 |---|---|---|---|
