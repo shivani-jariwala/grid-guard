@@ -123,9 +123,11 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
 ### P3 (Simulator + backend)
 - [x] **P3-01** Create the repo structure (folder layout from section 6), open it in Kiro, and push it to GitHub.
   - Done: [shivani-jariwala/grid-guard](https://github.com/shivani-jariwala/grid-guard), commit `737b876` on `main`.
-- [ ] **P3-02** Steering files: `product.md`, `tech.md`, `rules.md` (from sections 1–5 and 13).
+- [x] **P3-02** Steering files: `product.md`, `tech.md`, `rules.md` (from sections 1–5 and 13).
 - [ ] **P3-03** Kiro specs: create the 5 spec folders. Each owner runs the spec flow (requirements → design → tasks) for their area:
   - 01 data-forecast → P1 · 02 simulator → P3 · 03 agent → P2 · 04 api-backend → P3 · 05 dashboard → P4
+  - Progress: folders created. `04-api-backend` is written (requirements, design, tasks).
+  - Left: `02-simulator` (P3). 01, 03 and 05 are for their owners.
 - [ ] **P3-04** SAM skeleton: S3 bucket, `Runs` + `Decisions` tables, HTTP API, placeholder Lambdas. Deploy once.
   - Done when: a placeholder `GET /scenarios` returns 200.
 - [ ] **P3-05** Store EIA key in SSM Parameter Store.
@@ -234,7 +236,12 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
   - Done when: a full run shows every `get_forecast` / `get_resources` / `simulate` / `draft_alert` / `submit_plan` call, readable on a screen recording.
 
 ### P3
-- [ ] **P3-10** APIs: `GET /scenarios`, `GET /resources`, `POST /simulate`.
+- [x] **P3-10** APIs: `GET /scenarios`, `GET /resources`, `POST /simulate`.
+  - Done: three handlers on shared helpers.
+    - `shared/api.py`: responses, input checks, error mapping.
+    - `shared/data.py`: reads scenarios and forecasts from the repo folders locally, or from S3 when `FORECAST_BUCKET` is set.
+    - Tested with fake API Gateway events in `tests/test_handlers.py` and `tests/test_api_shared.py`.
+  - **P1:** `forecast_api` can follow the same pattern as `resources_api`, using `load_forecast()` from `shared/data.py`.
 - [ ] **P3-11** `POST /runs` (`agent_start`: save "running", invoke worker async) and `GET /runs/{run_id}`.
 - [ ] **P3-12** Worker timeout 5 min, least-privilege IAM per Lambda, CORS limited to the Amplify domain.
 - [ ] **P3-17** Cost protection (decision 7):
