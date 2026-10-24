@@ -133,8 +133,11 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
 - [x] **P3-06** Write contracts C2–C5 in `docs/contracts.md`.
   - Done. C1 and C6 are also drafted there, for P1 and P2 to confirm.
 - [ ] **P3-07** Kiro hook: run pytest when backend files are saved.
-- [ ] **P3-15** Simulator stub with the **final function signature**. It returns a fake C4 result (with `plan_hash` and `all_green`), so P2 can build tools before P3-08 is done.
+- [x] **P3-15** Simulator stub with the **final function signature**. It returns a fake C4 result (with `plan_hash` and `all_green`), so P2 can build tools before P3-08 is done.
   - Done when: P2 can import it and call it with a C3 plan.
+  - Done: `backend/shared/models.py` (real parsing, normalization, plan hash) and `simulator.py` (`simulate()` / `simulate_dict()`, fake numbers, `engine: "stub"`).
+    - Fake rule: a no-action plan is RED at 18–19 and YELLOW at 17 and 20. Any action makes every hour GREEN.
+    - Import with `from shared.simulator import simulate_dict`, with `backend/` on the path.
 - [ ] **P3-16** AWS Budgets alarm on the hackathon account (email the team). With P2: confirm Claude + Guardrails region availability (P2-03).
   - Done when: the alarm shows in Budgets, and the region is written in `tech.md`.
   - Progress: region done. `us-east-1` is written in `tech.md` and Claude is confirmed there.
