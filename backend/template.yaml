@@ -193,6 +193,22 @@ Resources:
             Method: GET
             Path: /resources
 
+  ForecastFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: GET /forecast
+      Handler: functions.forecast_api.app.handler
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref DataBucket
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /forecast
+
   SimulateFunction:
     Type: AWS::Serverless::Function
     Properties:
