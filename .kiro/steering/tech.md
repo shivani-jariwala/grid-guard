@@ -11,13 +11,13 @@
 | Backend | AWS Lambda (Python 3.12) + API Gateway HTTP API |
 | Infrastructure | AWS SAM (`backend/template.yaml`) |
 | Database | Amazon DynamoDB: `Runs`, `Decisions`, daily run counter |
-| Secrets / config | SSM Parameter Store: EIA API key |
+| Secrets / config | SSM Parameter Store: EIA API key, demo passcode |
 | Frontend | React + Vite + TypeScript, Recharts, hosted on AWS Amplify Hosting |
 | Logs | Amazon CloudWatch |
 | Tests | pytest (backend, ML, number guard); frontend lint on save |
 
 - AWS region: `us-east-1` (the only region the hackathon account allows). Still confirm the Claude model and Guardrails are enabled there (P3-16).
-- Bedrock model ID lives in config, never hard-coded.
+- Bedrock model ID lives in config, never hard-coded (currently `us.anthropic.claude-sonnet-4-5-20250929-v1:0`).
 
 ## Data
 
