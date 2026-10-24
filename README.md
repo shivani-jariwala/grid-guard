@@ -62,6 +62,23 @@ sam build && sam deploy      # stack "gridguard" in us-east-1, uses the gridguar
 
 Settings live in `backend/samconfig.toml`. The API URL and bucket name are printed as stack outputs.
 
+Useful switches (add to `sam deploy`):
+- `--parameter-overrides AgentWorker=bedrock`: use the real Bedrock agent (`functions/agent_worker`) instead of the rule-based stub.
+- `--parameter-overrides "AllowedOrigins=http://localhost:5173,https://<your-app>.amplifyapp.com"`: allow the deployed dashboard in CORS.
+
+Pass both in one `--parameter-overrides` if you need both.
+
+| Endpoint | What it does |
+|---|---|
+| `GET /scenarios` | List scenarios |
+| `GET /forecast?scenario=` | Hourly P10/P50/P90, actual, CAISO forecast |
+| `GET /resources?scenario=` | Full scenario with sources |
+| `POST /simulate` | What-if check of a plan (plain code) |
+| `POST /runs` | Start an agent run → `202 {run_id}` |
+| `GET /runs/{run_id}` | Poll run status, trace, attempts, briefing |
+| `POST /runs/{run_id}/decision` | Approve / Edit / Reject with operator name |
+| `GET /audit` | Decisions, newest first |
+
 ## Team workflow
 
 - `main` is protected. Never push to it directly.

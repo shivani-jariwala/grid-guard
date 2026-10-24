@@ -54,11 +54,16 @@ def bad_request(message: str) -> ApiError:
     return ApiError(400, "BAD_REQUEST", message)
 
 
+MAX_BODY_BYTES = 64 * 1024  # plans and decisions are a few KB; anything bigger is a mistake or abuse
+
+
 def json_body(event: Mapping[str, Any]) -> Dict[str, Any]:
-    """The request body as a JSON object, or ApiError 400."""
+    """The request body as a JSON object, or ApiError 400 / 413."""
     raw = event.get("body")
     if raw is None or raw == "":
         raise bad_request("Request body is required.")
+    if len(raw) > MAX_BODY_BYTES * (4 / 3 if event.get("isBase64Encoded") else 1):
+        raise ApiError(413, "PAYLOAD_TOO_LARGE", f"Request body must be under {MAX_BODY_BYTES // 1024} KB.")
     if event.get("isBase64Encoded"):
         try:
             raw = base64.b64decode(raw).decode("utf-8")

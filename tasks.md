@@ -187,7 +187,8 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
 
 ### P1
 - [ ] **P1-10** Upload real forecasts to S3 (replacing the stub).
-- [ ] **P1-11** `forecast_api` Lambda: `GET /forecast?scenario=`. Coordinate with P3 on the handler pattern.
+- [x] **P1-11** `forecast_api` Lambda: `GET /forecast?scenario=`. Coordinate with P3 on the handler pattern.
+  - Done by Snehil (branch `feature/snehil-forecast-api`). It serves the real forecasts from S3 (`model_version xgb-quantile-ridge-cqr-v1`).
 - [ ] **P1-12** Peak hour + risk window logic (used by `get_forecast` and the UI banner).
 
 ### P2
@@ -252,6 +253,12 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
   - Live test: a run finished in about 11 seconds, going from RED to ALL_GREEN in 4 simulate calls.
   - **P2:** your worker can reuse `RunStore`, `add_trace`, `add_simulation` and `check_submit` from `shared/runs.py`, plus `build_actions` from `shared/briefing.py`. To switch over, point `WORKER_FUNCTION_NAME` in `template.yaml` at your function.
 - [ ] **P3-12** Worker timeout 5 min, least-privilege IAM per Lambda, CORS limited to the Amplify domain.
+  - Done:
+    - each Lambda only gets the tables and bucket it uses;
+    - the real-agent worker (`AgentWorker=bedrock`) gets a 5-minute timeout and only Bedrock invoke + guardrail permissions;
+    - CORS allows only `http://localhost:5173` (checked live: other sites are blocked).
+  - **Left:** add the Amplify URL once P4 deploys:
+    `sam deploy --parameter-overrides "AllowedOrigins=http://localhost:5173,https://<branch>.<id>.amplifyapp.com"`
 - [x] **P3-17** Cost protection (decision 7):
   - HTTP API stage throttling, set very low on `POST /runs`;
   - a daily run cap of 100, counted in DynamoDB and checked in `agent_start`. Over the cap, return a clear error.
@@ -285,7 +292,12 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
   - Done when: P1-14 tests pass.
 
 ### P3
-- [ ] **P3-13** `POST /runs/{run_id}/decision` (Approve / Edit / Reject + operator name + note) and `GET /audit`. Validate input (operator name required, length-limited).
+- [x] **P3-13** `POST /runs/{run_id}/decision` (Approve / Edit / Reject + operator name + note) and `GET /audit`. Validate input (operator name required, length-limited).
+  - Done and deployed. Each decision stores the run's final plan hash and status.
+    - `EDIT` requires `edits.alert_text` (≤ 160 characters).
+    - Decisions on runs that aren't finished get `409 RUN_NOT_DONE`.
+    - `GET /audit?limit=N` returns newest first.
+  - Tested live, and the test entries were removed.
 
 ### P4
 - [ ] **P4-08** Screen 3 (Briefing + approval): status, action table (from simulator), before/after margin chart, "Why this plan", "What could go wrong", editable draft alert with character count and **"Draft only. Not sent."**, Approve / Edit / Reject + note, and a **small audit log panel** (who, when, decision, note) from `GET /audit`.
@@ -303,7 +315,13 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
 - [ ] **P2-12** Fix eval failures (prompt + tool tweaks). Re-run the eval with P5.
 
 ### P3
-- [ ] **P3-14** Hardening: Bedrock slow/down → clear error + "try again", input validation everywhere, CloudWatch logs readable.
+- [x] **P3-14** Hardening: Bedrock slow/down → clear error + "try again", input validation everywhere, CloudWatch logs readable.
+  - Done:
+    - **Errors:** every route returns `{"error": {code, message}}`.
+    - **Size limit:** request bodies are capped at 64 KB (`413`).
+    - **Timeouts:** runs stuck in `running` for more than 6 minutes show as `RUN_TIMED_OUT`, so the UI stops polling and can offer "try again".
+    - **Logs:** they hold codes and request IDs, never secrets or full bodies.
+  - **Left:** Bedrock-specific errors live in P2's worker.
 
 ### P4
 - [ ] **P4-09** "Fail on purpose" flow: switching to `sept6_2022_plus5F` and clicking "Make a plan" shows the `CANNOT_MEET_TARGET` result and the agent's recommendation clearly on Screens 2 and 3.

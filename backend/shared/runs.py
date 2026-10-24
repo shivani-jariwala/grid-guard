@@ -19,6 +19,11 @@ STATUS_RUNNING = "running"
 STATUS_DONE = "done"
 STATUS_FAILED = "failed"
 
+# The worker Lambda times out at 5 minutes. A run still "running" after this long
+# was killed without updating its record, so GET /runs reports it as timed out
+# instead of letting the dashboard poll forever.
+RUN_TIMEOUT_SECONDS = 6 * 60
+
 
 class DailyLimitReached(Exception):
     """The daily run cap is used up."""
@@ -96,6 +101,26 @@ def new_run(scenario_id: str, margin_target_pct: float, model_id: str, now: Opti
         "final": None,
         "flags": [],
         "error": None,
+    }
+
+
+def view_run(run: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, Any]:
+    """The run as clients should see it: a stale "running" run is shown as failed (RUN_TIMED_OUT).
+
+    Read-only: the stored record isn't changed.
+    """
+    if run.get("status") != STATUS_RUNNING:
+        return run
+    try:
+        started = datetime.strptime(run["created_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    except (KeyError, ValueError):
+        return run
+    if ((now or utc_now()) - started).total_seconds() <= RUN_TIMEOUT_SECONDS:
+        return run
+    return {
+        **run,
+        "status": STATUS_FAILED,
+        "error": {"code": "RUN_TIMED_OUT", "message": "The agent didn't finish in time. Please start a new run."},
     }
 
 

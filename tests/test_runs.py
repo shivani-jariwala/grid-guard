@@ -296,3 +296,45 @@ def test_stub_worker_marks_data_problems_as_failed(aws, store, worker, tmp_path)
 def test_stub_worker_ignores_unknown_runs(aws, store, worker):
     runs, _ = aws
     worker.run_stub_agent("00000000-0000-4000-8000-000000000000", runs, store, pause=0)  # no crash
+
+
+# ---------------------------------------------------------------------------
+# Hardening
+# ---------------------------------------------------------------------------
+
+
+def test_stale_running_runs_show_as_timed_out(aws):
+    from datetime import timedelta
+
+    from shared.runs import RUN_TIMEOUT_SECONDS, view_run
+
+    runs, _ = aws
+    start = datetime(2026, 10, 24, 7, 0, tzinfo=timezone.utc)
+    run = new_run("test_day", 6, "stub-agent", now=start)
+    runs.create(run)
+    stored = runs.get(run["run_id"])
+
+    fresh = view_run(stored, start + timedelta(seconds=RUN_TIMEOUT_SECONDS))
+    assert fresh["status"] == "running" and fresh["error"] is None
+    stale = view_run(stored, start + timedelta(seconds=RUN_TIMEOUT_SECONDS + 1))
+    assert stale["status"] == "failed" and stale["error"]["code"] == "RUN_TIMED_OUT"
+    assert runs.get(run["run_id"])["status"] == "running"  # the stored record is untouched
+
+    done = dict(stored, status="done")
+    assert view_run(done, start + timedelta(days=1)) is done  # finished runs never time out
+
+    module = load_handler_module("run_status")
+    shown = module.get_run({"pathParameters": {"run_id": run["run_id"]}}, runs, start + timedelta(hours=1))
+    assert shown["error"]["code"] == "RUN_TIMED_OUT"
+
+
+def test_run_records_the_real_model_only_when_the_bedrock_agent_is_on(aws, store):
+    runs, counter = aws
+    module = load_handler_module("agent_start")
+    event = {"body": json.dumps({"scenario_id": "test_day"})}
+    for env, expected in [
+        ({"BEDROCK_MODEL_ID": "us.anthropic.x"}, "stub-agent"),  # stub worker: never claim a model
+        ({"BEDROCK_MODEL_ID": "us.anthropic.x", "AGENT_WORKER": "bedrock"}, "us.anthropic.x"),
+    ]:
+        r = module.start_run(event, store, runs, counter, lambda run_id: None, load_settings(env))
+        assert runs.get(body_of(r)["run_id"])["model_id"] == expected

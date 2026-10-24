@@ -35,6 +35,12 @@ def test_json_body_accepts_plain_and_base64():
     assert json_body({"body": encoded, "isBase64Encoded": True}) == {"x": 2}
 
 
+def test_json_body_rejects_huge_bodies():
+    with pytest.raises(ApiError) as err:
+        json_body({"body": '{"x": "' + "a" * (64 * 1024) + '"}'})
+    assert err.value.status == 413 and err.value.code == "PAYLOAD_TOO_LARGE"
+
+
 @pytest.mark.parametrize("raw, message", [(None, "required"), ("", "required"), ("{nope", "valid JSON"), ("[1]", "JSON object")])
 def test_json_body_rejects_bad_bodies(raw, message):
     with pytest.raises(ApiError) as err:
