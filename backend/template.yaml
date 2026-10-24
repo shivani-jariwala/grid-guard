@@ -11,14 +11,32 @@ Parameters:
     Type: CommaDelimitedList
     Default: "http://localhost:5173"
     Description: Browser origins allowed by CORS. Add the Amplify URL once P4 has it.
+  AgentWorker:
+    Type: String
+    Default: stub
+    AllowedValues: [stub, bedrock]
+    Description: >
+      Which worker POST /runs starts. "stub" = rule-based placeholder (no Bedrock).
+      "bedrock" = P2's real agent in functions/agent_worker/app.py.
+      Switch with: sam deploy --parameter-overrides AgentWorker=bedrock
   BedrockModelId:
     Type: String
+    Default: "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    Description: Bedrock inference profile ID used by the real agent (see tech.md).
+  GuardrailId:
+    Type: String
     Default: ""
-    Description: Bedrock inference profile ID for the agent (P2 picks it). Empty until the agent is deployed.
+    Description: Bedrock Guardrail ID (P2-10). Empty = no guardrail yet.
+  GuardrailVersion:
+    Type: String
+    Default: DRAFT
   DailyRunCap:
     Type: Number
     Default: 100
     MinValue: 1
+
+Conditions:
+  UseBedrockAgent: !Equals [!Ref AgentWorker, bedrock]
 
 Globals:
   Function:
@@ -38,6 +56,9 @@ Globals:
         DECISIONS_TABLE: !Ref DecisionsTable
         COUNTERS_TABLE: !Ref CountersTable
         BEDROCK_MODEL_ID: !Ref BedrockModelId
+        BEDROCK_GUARDRAIL_ID: !Ref GuardrailId
+        BEDROCK_GUARDRAIL_VERSION: !Ref GuardrailVersion
+        AGENT_WORKER: !Ref AgentWorker
         DAILY_RUN_CAP: !Ref DailyRunCap
         AGENT_MAX_SIMULATE_CALLS: "5"
         AGENT_MAX_TOOL_CALLS: "12"
@@ -220,7 +241,7 @@ Resources:
       Handler: functions.agent_start.app.handler
       Environment:
         Variables:
-          WORKER_FUNCTION_NAME: !Ref AgentWorkerStubFunction
+          WORKER_FUNCTION_NAME: !If [UseBedrockAgent, !Ref AgentWorkerFunction, !Ref AgentWorkerStubFunction]
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref DataBucket
@@ -229,7 +250,7 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Ref CountersTable
         - LambdaInvokePolicy:
-            FunctionName: !Ref AgentWorkerStubFunction
+            FunctionName: !If [UseBedrockAgent, !Ref AgentWorkerFunction, !Ref AgentWorkerStubFunction]
       Events:
         Api:
           Type: HttpApi
@@ -267,6 +288,66 @@ Resources:
             BucketName: !Ref DataBucket
         - DynamoDBCrudPolicy:
             TableName: !Ref RunsTable
+
+  AgentWorkerFunction:
+    Type: AWS::Serverless::Function
+    Condition: UseBedrockAgent  # only created with AgentWorker=bedrock
+    Properties:
+      # P2's real agent: Bedrock Converse API + tools, max 5 simulate / 12 tool calls.
+      Description: Bedrock agent worker (P2)
+      Handler: functions.agent_worker.app.handler
+      Timeout: 300  # 5 minutes; GET /runs reports runs older than 6 minutes as RUN_TIMED_OUT
+      MemorySize: 512
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref DataBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RunsTable
+        - Statement:
+            - Sid: CallClaudeThroughUsInferenceProfiles
+              Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource:
+                - !Sub "arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/*"
+                - "arn:aws:bedrock:*::foundation-model/anthropic.*"
+            - Sid: UseOurGuardrails
+              Effect: Allow
+              Action: bedrock:ApplyGuardrail
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:guardrail/*"
+
+  # ---------------------------------------------------------------------------
+  # Decisions and audit log
+  # ---------------------------------------------------------------------------
+
+  # GET /forecast (ForecastFunction) comes from Snehil's feature/snehil-forecast-api branch.
+
+  DecisionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: POST /runs/{run_id}/decision and GET /audit
+      Handler: functions.decision_api.app.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref RunsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref DecisionsTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref DecisionsTable
+      Events:
+        Decision:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /runs/{run_id}/decision
+        Audit:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /audit
 
 Outputs:
   ApiUrl:

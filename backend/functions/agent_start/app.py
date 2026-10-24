@@ -65,7 +65,8 @@ def start_run(
     except DailyLimitReached as err:
         raise ApiError(429, "DAILY_LIMIT_REACHED", f"{err} Try again tomorrow.") from None
 
-    run = new_run(scenario_id, target, settings.bedrock_model_id or "stub-agent", now)
+    model_id = settings.bedrock_model_id if settings.agent_worker == "bedrock" else "stub-agent"
+    run = new_run(scenario_id, target, model_id, now)
     runs.create(run)
     try:
         invoke(run["run_id"])
