@@ -102,7 +102,11 @@ def _hours(value: Any, path: str) -> Tuple[int, ...]:
 
 
 def _mw(value: Any, path: str) -> float:
-    return round(_num(value, path), MW_DECIMALS)
+    """Plan MW value: a number >= 0, rounded for the canonical form."""
+    mw = _num(value, path)
+    if mw < 0:
+        raise ShapeError(path, "must be 0 or more")
+    return round(mw, MW_DECIMALS)
 
 
 def _by_hour(value: Any, path: str) -> Tuple[float, ...]:
