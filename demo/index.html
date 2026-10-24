@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GridGuard — heat-wave planning for grid operators</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1724;
+    --panel: #ffffff;
+    --ink: #1b2430;
+    --muted: #5b6b7b;
+    --line: #e2e8f0;
+    --accent: #1f6feb;
+    --accent-dark: #1858c4;
+    --green: #1a7f46;
+    --green-bg: #e6f4ec;
+    --yellow: #9a6a00;
+    --yellow-bg: #fcf3d9;
+    --red: #b42318;
+    --red-bg: #fbe9e7;
+    --shadow: 0 1px 3px rgba(16, 24, 40, .08), 0 1px 2px rgba(16, 24, 40, .06);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: #f1f5f9;
+    line-height: 1.5;
+  }
+  header {
+    background: linear-gradient(180deg, #11203a, #0f1724);
+    color: #fff;
+    padding: 20px 24px;
+  }
+  header h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: .2px; }
+  header .sub { margin-top: 4px; color: #aebfd4; font-size: 13px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 24px; }
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }
+  .toolbar label { font-size: 13px; color: #cdd9e8; }
+  select, input, textarea, button { font: inherit; }
+  select {
+    padding: 8px 10px; border-radius: 8px; border: 1px solid #2b3a53;
+    background: #16233b; color: #fff; min-width: 240px;
+  }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px;
+  }
+  .panel h2 { margin: 0 0 4px; font-size: 16px; }
+  .panel .hint { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px; border-radius: 8px; border: 1px solid transparent;
+    background: var(--accent); color: #fff; font-weight: 600; cursor: pointer;
+  }
+  .btn:hover { background: var(--accent-dark); }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+  .btn.secondary { background: #fff; color: var(--ink); border-color: var(--line); }
+  .btn.secondary:hover { background: #f8fafc; }
+  .btn.approve { background: var(--green); }
+  .btn.approve:hover { filter: brightness(.95); }
+  .btn.reject { background: var(--red); }
+  .btn.reject:hover { filter: brightness(.95); }
+  .row { display: flex; flex-wrap: wrap; gap: 16px; }
+  .peak {
+    display: inline-flex; gap: 10px; align-items: baseline; margin-top: 12px;
+    font-size: 14px; color: var(--muted);
+  }
+  .peak b { color: var(--ink); font-size: 18px; }
+  .chart-box { position: relative; height: 340px; }
+
+  /* status labels: always text + color (never color alone) */
+  .status { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px;
+            padding: 2px 8px; border-radius: 999px; text-transform: none; }
+  .status .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .status.GREEN { color: var(--green); background: var(--green-bg); }
+  .status.GREEN .dot { background: var(--green); }
+  .status.YELLOW { color: var(--yellow); background: var(--yellow-bg); }
+  .status.YELLOW .dot { background: var(--yellow); }
+  .status.RED { color: var(--red); background: var(--red-bg); }
+  .status.RED .dot { background: var(--red); }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px;
+    padding: 10px 18px; border-radius: 10px; border: 2px solid;
+  }
+  .badge.ALL_GREEN { color: var(--green); background: var(--green-bg); border-color: var(--green); }
+  .badge.CANNOT_MEET_TARGET { color: var(--red); background: var(--red-bg); border-color: var(--red); }
+
+  /* agent timeline */
+  .timeline { list-style: none; margin: 0; padding: 0; }
+  .timeline li { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .timeline li:last-child { border-bottom: none; }
+  .step-head { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .step-n { background: #eef2f7; color: var(--muted); border-radius: 6px; padding: 1px 8px; font-size: 12px; font-weight: 700; }
+  .step-tool { font-weight: 700; }
+  .step-summary { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .hourstrip { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; margin-top: 8px; max-width: 560px; }
+  .hourbox {
+    height: 26px; border-radius: 4px; font-size: 9px; color: #fff; display: flex;
+    align-items: center; justify-content: center; font-weight: 700;
+  }
+  .hourbox.GREEN { background: var(--green); }
+  .hourbox.YELLOW { background: #c08a1e; }
+  .hourbox.RED { background: var(--red); }
+  .hourstrip-legend { font-size: 11px; color: var(--muted); margin-top: 6px; display: flex; gap: 14px; }
+  .bedrock { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .3px; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  ul.bullets { margin: 6px 0 0; padding-left: 20px; }
+  ul.bullets li { margin: 4px 0; }
+
+  .alert-draft {
+    border: 1px dashed var(--yellow); background: var(--yellow-bg); color: #6b4a00;
+    border-radius: 8px; padding: 12px 14px; margin-top: 10px; font-size: 14px;
+  }
+  .alert-draft .label { display: inline-block; font-weight: 800; color: var(--yellow); margin-bottom: 4px; }
+
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .field input, .field textarea {
+    width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink);
+  }
+  .field textarea { min-height: 70px; resize: vertical; }
+
+  .msg { border-radius: 8px; padding: 10px 14px; font-size: 14px; margin-top: 12px; }
+  .msg.info { background: #eef4fb; color: #1a3a63; border: 1px solid #cfe0f4; }
+  .msg.error { background: var(--red-bg); color: var(--red); border: 1px solid #f3c6c1; }
+  .msg.success { background: var(--green-bg); color: var(--green); border: 1px solid #bfe3cd; }
+  .spinner {
+    width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+    border-radius: 50%; display: inline-block; animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px; }
+  .counts { font-size: 12px; color: var(--muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding-bottom:0;">
+    <h1>GridGuard: heat-wave planning for grid operators</h1>
+    <div class="sub">Early warning, a plan with numbers, and the final say for Dana — the shift lead.</div>
+    <div class="toolbar">
+      <label for="scenario">Scenario</label>
+      <select id="scenario" aria-label="Scenario"></select>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="topMsg"></div>
+
+  <!-- Forecast -->
+  <section class="panel">
+    <h2>Tomorrow's demand forecast</h2>
+    <p class="hint">Hourly P10–P90 band with the P50 median, the actual demand, and CAISO's day-ahead forecast.</p>
+    <div class="chart-box"><canvas id="forecastChart"></canvas></div>
+    <div class="peak" id="peakInfo"></div>
+  </section>
+
+  <!-- Plan / agent run -->
+  <section class="panel">
+    <h2>Make a plan</h2>
+    <p class="hint">The agent forecasts the risk, drafts a plan, tests it in the simulator, and revises until every hour is safe.</p>
+    <button class="btn" id="makePlanBtn">Make a plan</button>
+    <div class="bedrock">Powered by Amazon Bedrock (Claude)</div>
+    <div id="runMsg"></div>
+    <div class="counts hidden" id="runCounts"></div>
+    <ul class="timeline" id="timeline"></ul>
+  </section>
+
+  <!-- Briefing -->
+  <section class="panel hidden" id="briefingPanel">
+    <h2>Operator briefing</h2>
+    <div id="briefingBadge" style="margin:8px 0 16px;"></div>
+
+    <h3 style="font-size:14px;margin:16px 0 6px;">Planned actions</h3>
+    <table id="actionsTable">
+      <thead><tr><th>Action</th><th>Hours</th><th class="num">MW</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <h3 style="font-size:14px;margin:20px 0 6px;">Why this plan</h3>
+    <ul class="bullets" id="rationaleList"></ul>
+
+    <h3 style="font-size:14px;margin:20px 0 6px;">What could go wrong</h3>
+    <ul class="bullets" id="risksList"></ul>
+
+    <div id="alertDraft"></div>
+  </section>
+
+  <!-- Approval -->
+  <section class="panel hidden" id="approvalPanel">
+    <h2>Your decision</h2>
+    <p class="hint">You have the final say. Nothing here is sent to the public — alerts are drafts only.</p>
+    <div class="field">
+      <label for="operatorName">Operator name</label>
+      <input id="operatorName" type="text" maxlength="60" placeholder="e.g. Dana Ruiz" />
+    </div>
+    <div class="field">
+      <label for="decisionNote">Note (optional)</label>
+      <textarea id="decisionNote" maxlength="500" placeholder="Anything to record with this decision"></textarea>
+    </div>
+    <div class="row">
+      <button class="btn approve" id="approveBtn">Approve plan</button>
+      <button class="btn reject" id="rejectBtn">Reject plan</button>
+    </div>
+    <div id="decisionMsg"></div>
+  </section>
+</div>
+
+<footer>Simulated only. GridGuard never controls real equipment or sends alerts.</footer>
+
+<script>
+const API = "https://ebhacp9l2e.execute-api.us-east-1.amazonaws.com";
+const STATUS_LABEL = { GREEN: "GREEN", YELLOW: "YELLOW", RED: "RED" };
+
+let chart = null;
+let currentRunId = null;
+let pollTimer = null;
+
+// ---------- small helpers ----------
+function el(id) { return document.getElementById(id); }
+
+function showMsg(container, kind, text) {
+  container.innerHTML = `<div class="msg ${kind}">${text}</div>`;
+}
+function clearMsg(container) { container.innerHTML = ""; }
+
+async function apiGet(path) {
+  const res = await fetch(API + path);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw apiError(res, data);
+  return data;
+}
+async function apiPost(path, body) {
+  const res = await fetch(API + path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw apiError(res, data);
+  return data;
+}
+function apiError(res, data) {
+  const code = data && data.error && data.error.code;
+  const message = (data && data.error && data.error.message) || data.message || ("HTTP " + res.status);
+  const e = new Error(message);
+  e.code = code;
+  return e;
+}
+function statusChip(status) {
+  const s = STATUS_LABEL[status] ? status : "RED";
+  return `<span class="status ${s}"><span class="dot"></span>${STATUS_LABEL[s] || s}</span>`;
+}
+function fmtMW(v) { return Math.round(v).toLocaleString() + " MW"; }
+function fmtHours(hours) {
+  if (!hours || !hours.length) return "—";
+  const h = hours.slice().sort((a, b) => a - b);
+  const contiguous = h.every((v, i) => i === 0 || v === h[i - 1] + 1);
+  return contiguous && h.length > 1 ? `${h[0]}:00–${h[h.length - 1]}:00` : h.map(x => x + ":00").join(", ");
+}
+
+// ---------- scenarios ----------
+async function loadScenarios() {
+  try {
+    const data = await apiGet("/scenarios");
+    const sel = el("scenario");
+    sel.innerHTML = "";
+    (data.scenarios || []).forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = `${s.name} — ${s.date} (target ${s.margin_target_pct}%)`;
+      sel.appendChild(opt);
+    });
+    if (!sel.options.length) {
+      showMsg(el("topMsg"), "error", "No scenarios are available from the API.");
+      return;
+    }
+    sel.addEventListener("change", onScenarioChange);
+    await onScenarioChange();
+  } catch (e) {
+    showMsg(el("topMsg"), "error", "Could not load scenarios: " + e.message);
+  }
+}
+
+async function onScenarioChange() {
+  resetRunUI();
+  await loadForecast(el("scenario").value);
+}
+
+// ---------- forecast chart ----------
+async function loadForecast(scenarioId) {
+  clearMsg(el("topMsg"));
+  el("peakInfo").innerHTML = "Loading forecast…";
+  try {
+    const fc = await apiGet("/forecast?scenario=" + encodeURIComponent(scenarioId));
+    const hours = (fc.hours || []).slice().sort((a, b) => a.hour - b.hour);
+    drawForecast(hours);
+    const peak = hours.reduce((m, h) => (h.p90 > m.p90 ? h : m), hours[0]);
+    el("peakInfo").innerHTML =
+      `Peak P90 demand: <b>${fmtMW(peak.p90)}</b> at hour <b>${peak.hour}:00</b> (local time).`;
+  } catch (e) {
+    el("peakInfo").textContent = "";
+    showMsg(el("topMsg"), "error", "Could not load the forecast: " + e.message);
+  }
+}
+
+function drawForecast(hours) {
+  const labels = hours.map(h => h.hour + ":00");
+  const p10 = hours.map(h => h.p10);
+  const p50 = hours.map(h => h.p50);
+  const p90 = hours.map(h => h.p90);
+  const actual = hours.map(h => (h.actual == null ? null : h.actual));
+  const caiso = hours.map(h => (h.caiso_forecast == null ? null : h.caiso_forecast));
+
+  const data = {
+    labels,
+    datasets: [
+      // Band: plot P10 then P90 with fill to previous dataset.
+      { label: "P10", data: p10, borderColor: "transparent", pointRadius: 0, order: 4 },
+      { label: "P10–P90 band", data: p90, borderColor: "transparent", backgroundColor: "rgba(31,111,235,.14)",
+        pointRadius: 0, fill: "-1", order: 4 },
+      { label: "P50 (median forecast)", data: p50, borderColor: "#1f6feb", borderWidth: 2, pointRadius: 0, order: 1 },
+      { label: "Actual", data: actual, borderColor: "#b42318", borderWidth: 2, pointRadius: 0, spanGaps: false, order: 0 },
+      { label: "CAISO day-ahead", data: caiso, borderColor: "#5b6b7b", borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, spanGaps: true, order: 2 },
+    ],
+  };
+  const options = {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: { labels: { filter: (item) => item.text !== "P10", usePointStyle: true, boxWidth: 8 } },
+      tooltip: { callbacks: { label: (c) => c.dataset.label + ": " + (c.parsed.y == null ? "—" : fmtMW(c.parsed.y)) } },
+    },
+    scales: {
+      y: { title: { display: true, text: "MW" }, ticks: { callback: v => (v / 1000) + "k" } },
+      x: { title: { display: true, text: "Hour (local)" } },
+    },
+  };
+  if (chart) chart.destroy();
+  chart = new Chart(el("forecastChart"), { type: "line", data, options });
+}
+
+// ---------- make a plan / poll run ----------
+function resetRunUI() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  currentRunId = null;
+  el("timeline").innerHTML = "";
+  clearMsg(el("runMsg"));
+  el("runCounts").classList.add("hidden");
+  el("briefingPanel").classList.add("hidden");
+  el("approvalPanel").classList.add("hidden");
+  clearMsg(el("decisionMsg"));
+  el("makePlanBtn").disabled = false;
+  el("makePlanBtn").innerHTML = "Make a plan";
+}
+
+async function makePlan() {
+  resetRunUI();
+  const btn = el("makePlanBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Starting…';
+  showMsg(el("runMsg"), "info", "Starting an agent run…");
+  try {
+    const res = await apiPost("/runs", { scenario_id: el("scenario").value });
+    currentRunId = res.run_id;
+    showMsg(el("runMsg"), "info", "Agent is working… (polling every 2s)");
+    btn.innerHTML = '<span class="spinner"></span> Planning…';
+    pollRun();
+    pollTimer = setInterval(pollRun, 2000);
+  } catch (e) {
+    const extra = e.code === "DAILY_LIMIT_REACHED" ? " (the daily run limit has been reached)" : "";
+    showMsg(el("runMsg"), "error", "Could not start a run: " + e.message + extra);
+    btn.disabled = false;
+    btn.innerHTML = "Make a plan";
+  }
+}
+
+async function pollRun() {
+  if (!currentRunId) return;
+  try {
+    const run = await apiGet("/runs/" + currentRunId);
+    renderTimeline(run);
+    renderCounts(run);
+    if (run.status === "done") {
+      stopPolling();
+      showMsg(el("runMsg"), "success", "Plan ready. Review the briefing below.");
+      renderBriefing(run);
+      el("approvalPanel").classList.remove("hidden");
+    } else if (run.status === "failed") {
+      stopPolling();
+      const err = run.error || {};
+      showMsg(el("runMsg"), "error", "The agent run failed: " + (err.message || err.code || "unknown error") + ".");
+    }
+  } catch (e) {
+    stopPolling();
+    showMsg(el("runMsg"), "error", "Lost contact with the run: " + e.message);
+  }
+}
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  el("makePlanBtn").disabled = false;
+  el("makePlanBtn").innerHTML = "Make a plan";
+}
+
+function renderCounts(run) {
+  const c = run.counts || {};
+  const box = el("runCounts");
+  box.classList.remove("hidden");
+  box.textContent = `Tool calls: ${c.tool_calls ?? 0} · Simulations: ${c.simulate_calls ?? 0} · Status: ${run.status}`;
+}
+
+function renderTimeline(run) {
+  const tl = el("timeline");
+  const trace = run.trace || [];
+  const sims = run.simulations || [];
+  // Map simulate step -> the matching simulation record (in order).
+  let simIndex = 0;
+  tl.innerHTML = "";
+  trace.forEach(step => {
+    const li = document.createElement("li");
+    let html = `<div class="step-head">
+        <span class="step-n">#${step.step}</span>
+        <span class="step-tool">${escapeHtml(step.tool)}</span>
+      </div>
+      <div class="step-summary">${escapeHtml(step.output_summary || "")}</div>`;
+    if (step.tool === "simulate") {
+      const sim = sims[simIndex++];
+      const hoursArr = sim && sim.result && sim.result.hours;
+      if (hoursArr && hoursArr.length) html += hourStrip(hoursArr);
+    }
+    li.innerHTML = html;
+    tl.appendChild(li);
+  });
+}
+
+function hourStrip(hours) {
+  const sorted = hours.slice().sort((a, b) => a.hour - b.hour);
+  const boxes = sorted.map(h => {
+    const s = STATUS_LABEL[h.status] ? h.status : "RED";
+    return `<div class="hourbox ${s}" title="Hour ${h.hour}: ${STATUS_LABEL[s]} (margin ${h.margin_pct}%)">${h.hour}</div>`;
+  }).join("");
+  return `<div class="hourstrip" role="img" aria-label="Hourly status">${boxes}</div>
+    <div class="hourstrip-legend">
+      ${statusChip("GREEN")} ${statusChip("YELLOW")} ${statusChip("RED")}
+    </div>`;
+}
+
+// ---------- briefing ----------
+function renderBriefing(run) {
+  const final = run.final;
+  if (!final) { el("briefingPanel").classList.add("hidden"); return; }
+  const b = final.briefing || {};
+  el("briefingPanel").classList.remove("hidden");
+
+  const status = final.status || b.status || "CANNOT_MEET_TARGET";
+  const label = status === "ALL_GREEN" ? "All hours GREEN" : "Cannot meet target";
+  el("briefingBadge").innerHTML = `<span class="badge ${status}">${label}</span>`;
+
+  // actions table
+  const tbody = el("actionsTable").querySelector("tbody");
+  tbody.innerHTML = "";
+  const actions = b.actions || [];
+  if (!actions.length) {
+    tbody.innerHTML = `<tr><td colspan="3" style="color:var(--muted)">No actions — the no-action plan was used.</td></tr>`;
+  } else {
+    actions.forEach(a => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${escapeHtml(a.label || a.action)}</td>
+        <td>${fmtHours(a.hours)}</td>
+        <td class="num">${a.mw != null ? Math.round(a.mw).toLocaleString() : "—"}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  fillBullets("rationaleList", b.rationale, "No rationale provided.");
+  fillBullets("risksList", b.risks, "No risks listed.");
+
+  // draft alert
+  const alertBox = el("alertDraft");
+  if (b.alert_text) {
+    const lbl = b.alert_label || "Draft only. Not sent.";
+    alertBox.innerHTML = `<div class="alert-draft">
+        <span class="label">${escapeHtml(lbl)}</span><br/>${escapeHtml(b.alert_text)}
+      </div>`;
+  } else {
+    alertBox.innerHTML = "";
+  }
+}
+
+function fillBullets(id, items, emptyText) {
+  const ul = el(id);
+  ul.innerHTML = "";
+  if (!items || !items.length) {
+    ul.innerHTML = `<li style="color:var(--muted)">${emptyText}</li>`;
+    return;
+  }
+  items.forEach(t => {
+    const li = document.createElement("li");
+    li.textContent = t;
+    ul.appendChild(li);
+  });
+}
+
+// ---------- decision ----------
+async function sendDecision(decision) {
+  const name = el("operatorName").value.trim();
+  const note = el("decisionNote").value.trim();
+  if (!currentRunId) { showMsg(el("decisionMsg"), "error", "No run to decide on yet."); return; }
+  if (!name) { showMsg(el("decisionMsg"), "error", "Please enter the operator name first."); return; }
+
+  el("approveBtn").disabled = true;
+  el("rejectBtn").disabled = true;
+  showMsg(el("decisionMsg"), "info", "Recording your decision…");
+  try {
+    const body = { operator_name: name, decision, note };
+    const res = await apiPost("/runs/" + currentRunId + "/decision", body);
+    const verb = decision === "APPROVE" ? "approved" : "rejected";
+    showMsg(el("decisionMsg"), "success",
+      `Plan ${verb} by ${escapeHtml(res.operator_name || name)} and recorded in the audit log${res.timestamp ? " at " + escapeHtml(res.timestamp) : ""}.`);
+  } catch (e) {
+    const extra = e.code === "RUN_NOT_DONE" ? " (the run isn't finished yet)" : "";
+    showMsg(el("decisionMsg"), "error", "Could not record the decision: " + e.message + extra);
+  } finally {
+    el("approveBtn").disabled = false;
+    el("rejectBtn").disabled = false;
+  }
+}
+
+function escapeHtml(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+// ---------- wire up ----------
+el("makePlanBtn").addEventListener("click", makePlan);
+el("approveBtn").addEventListener("click", () => sendDecision("APPROVE"));
+el("rejectBtn").addEventListener("click", () => sendDecision("REJECT"));
+loadScenarios();
+</script>
+</body>
+</html>
