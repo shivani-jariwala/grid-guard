@@ -89,8 +89,9 @@ class Settings:
     runs_table: str
     decisions_table: str
     counters_table: str
-    forecast_bucket: str  # empty until the SAM stack is deployed (P3-04)
+    forecast_bucket: str  # empty = read scenarios/forecasts from the repo folders (local dev)
     forecast_prefix: str
+    scenario_prefix: str
     eia_api_key_param: str  # SSM parameter NAME, not the key
     daily_run_cap: int
     agent_max_simulate_calls: int
@@ -130,6 +131,7 @@ def load_settings(env: Mapping[str, str]) -> Settings:
         counters_table=env.get("COUNTERS_TABLE", "gridguard-counters"),
         forecast_bucket=env.get("FORECAST_BUCKET", ""),
         forecast_prefix=env.get("FORECAST_PREFIX", "forecasts/"),
+        scenario_prefix=env.get("SCENARIO_PREFIX", "scenarios/"),
         eia_api_key_param=env.get("EIA_API_KEY_PARAM", "/gridguard/eia-api-key"),
         daily_run_cap=_int(env, "DAILY_RUN_CAP", 100),
         agent_max_simulate_calls=_int(env, "AGENT_MAX_SIMULATE_CALLS", 5),
