@@ -1,0 +1,37 @@
+# --- Secrets (EIA key lives in SSM, never in the repo) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.ipynb_checkpoints/
+
+# --- ML: raw data and trained models are large and can be regenerated ---
+ml/data/
+ml/artifacts/
+
+# --- AWS SAM build output ---
+.aws-sam/
+
+# --- Frontend ---
+node_modules/
+frontend/dist/
+*.local
+
+# --- Kiro: per-user settings (MCP config can hold tokens) ---
+.kiro/settings/
+
+# --- OS / editors / logs ---
+.DS_Store
+.idea/
+*.log
