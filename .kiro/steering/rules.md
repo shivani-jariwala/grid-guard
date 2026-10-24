@@ -23,4 +23,8 @@
 
 - Never run `git commit` or `git push` without explicit approval from the person you're working with.
 - Never push directly to `main`. Use a branch per task and a pull request.
+- Commit messages describe the change in plain words, not task IDs:
+  - Title: imperative, under ~70 characters, says what changed. For example "Reject plans whose battery discharge exceeds stored energy".
+  - Body (when useful): 1–3 short lines on why, or what to watch out for.
+  - Leave task numbers like P3-08 out of the title. If needed, add them at the end of the body ("Task: P3-08").
 - Check `tasks.md` for task ownership and contracts before changing another area's code.
