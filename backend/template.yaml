@@ -149,6 +149,11 @@ Resources:
       DefaultRouteSettings:
         ThrottlingRateLimit: 20
         ThrottlingBurstLimit: 40
+      RouteSettings:
+        # Starting a run is the only route that can lead to Bedrock spend: keep it slow.
+        "POST /runs":
+          ThrottlingRateLimit: 1
+          ThrottlingBurstLimit: 2
       Tags:
         project: gridguard
 
@@ -203,6 +208,65 @@ Resources:
             ApiId: !Ref HttpApi
             Method: POST
             Path: /simulate
+
+  # ---------------------------------------------------------------------------
+  # Agent runs: start (async) -> worker -> poll status
+  # ---------------------------------------------------------------------------
+
+  AgentStartFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: POST /runs (daily cap, save run, start worker async)
+      Handler: functions.agent_start.app.handler
+      Environment:
+        Variables:
+          WORKER_FUNCTION_NAME: !Ref AgentWorkerStubFunction
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref DataBucket
+        - DynamoDBWritePolicy:
+            TableName: !Ref RunsTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref CountersTable
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AgentWorkerStubFunction
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /runs
+
+  RunStatusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: GET /runs/{run_id}
+      Handler: functions.run_status.app.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref RunsTable
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /runs/{run_id}
+
+  AgentWorkerStubFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      # TEMPORARY: simple rules, no Bedrock. P2's agent_worker replaces it
+      # (point AgentStartFunction's WORKER_FUNCTION_NAME at the new function).
+      Description: STUB agent worker (no Bedrock)
+      Handler: functions.agent_worker_stub.app.handler
+      Timeout: 60
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref DataBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RunsTable
 
 Outputs:
   ApiUrl:
