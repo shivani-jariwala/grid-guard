@@ -38,6 +38,21 @@ docs/              contracts, sources, limits, demo script
 - AWS CLI v2 and AWS SAM CLI (backend deploy)
 - Access to the hackathon AWS account, with Bedrock model access enabled (P2-01)
 
+## Backend setup and tests
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements-dev.txt
+cp .env.example .env         # then fill in your values (.env is git-ignored)
+python -m pytest -q          # simulator, model and config tests
+```
+
+- **Settings:** `backend/shared/config.py` reads every setting from environment variables. It loads `.env` automatically when you run locally. In AWS, the SAM template sets the same variables.
+- **Credentials:** AWS keys never go in `.env`. Use the `~/.aws` profile (`AWS_PROFILE=gridguard`). The EIA key lives in SSM Parameter Store.
+
+The Kiro hook in `.kiro/hooks/` reruns these tests whenever you save a `backend/` or `tests/` Python file.
+
 ## Team workflow
 
 - `main` is protected. Never push to it directly.

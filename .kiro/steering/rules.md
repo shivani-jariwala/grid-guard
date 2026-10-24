@@ -16,7 +16,7 @@
 ## Security
 
 - No secrets in code or in the repo. Use SSM Parameter Store (EIA key).
-- Security is cost protection only (judges watch a video, they don't use the app). Keep HTTP API throttling, the daily run cap (100) and the Budgets alarm in place. No login: production would add Cognito.
+- Security is cost protection only (judges watch a video, they don't use the app). Keep the agent loop limits (5 simulate / 12 tool calls), HTTP API throttling and the daily run cap (100) in place. No login: production would add Cognito.
 - No personal data. Store the operator name only.
 
 ## Working in this repo

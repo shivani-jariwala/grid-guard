@@ -228,7 +228,8 @@ JSON shape (`SimResult.to_dict()`):
 }
 ```
 
-- `engine` is `"stub"` while the P3-15 stub is in place, and `"v1"` once P3-08 lands. The UI can show a "STUB DATA" badge on `"stub"`.
+- `engine` is `"v1"` (the real simulator, P3-08). It was `"stub"` during P3-15. The UI can show a "STUB DATA" badge if it ever sees `"stub"`.
+- Broken input data (net demand ≤ 0 in any hour) raises `ValueError`. That's a data bug, not a plan problem, so the API returns `500`.
 - **Invalid plan:** `valid = false`, `hours = []`, `all_green = false`, `lowest_margin_* = null`, `red_hours = yellow_hours = []`.
 - **Shape error** (`PLAN_SHAPE`): same as invalid, plus `plan_hash = null`, because the plan couldn't be normalized.
 
@@ -306,7 +307,7 @@ API Gateway's own throttling returns `429` with `{"message": "Too Many Requests"
 
 - `GET /audit` scans `Decisions` and sorts in the Lambda. That's fine at hackathon scale.
 - The frontend polls `GET /runs/{run_id}` every 2 seconds until `status` isn't `running`.
-- No login. Cost protection is throttling + the `Counters` cap + the Budgets alarm.
+- No login. Cost protection is the agent loop limits + throttling + the `Counters` cap. (Budgets alarm deferred, see P3-16 in `tasks.md`.)
 
 ---
 

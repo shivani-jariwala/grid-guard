@@ -44,7 +44,7 @@ Planning only. No code yet. Each task has an ID, an owner, what it needs first, 
 - The what-if slider becomes a scenario switch: `sept6_2022` ↔ `sept6_2022_plus5F`. `normal_summer_day` only if time allows.
 - Eval: 10 cases.
 - No "replay last good run". We can re-record the video.
-- Security is cost protection only: throttling, daily run cap, Budgets alarm. No passcode, no Cognito.
+- Security is cost protection only: agent loop limits, throttling, daily run cap. No passcode, no Cognito. (Budgets alarm deferred, see P3-16.)
 
 ### Video outline (5:00)
 
@@ -79,7 +79,7 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
 
 | Block | Build hours | Checkpoint at the end |
 |---|---|---|
-| 1. Setup and unblock | ≈ h0–3 | **Stub data and contracts done:** C1–C6 written, stub forecast + simulator stub exist, SAM skeleton deployed, Amplify URL live, Budgets alarm on, Claude + Guardrails confirmed in `us-east-1`, first `firm_mw` estimate. |
+| 1. Setup and unblock | ≈ h0–3 | **Stub data and contracts done:** C1–C6 written, stub forecast + simulator stub exist, SAM skeleton deployed, Amplify URL live, Claude + Guardrails confirmed in `us-east-1`, first `firm_mw` estimate. |
 | 2. Core pieces | ≈ h3–7 | **Simulator tests passing.** Real forecasts in S3. `firm_mw` confirmed (no-action plan RED around 6–7 p.m. at P90). Agent makes one real tool call. |
 | 3. Connect it | ≈ h7–11 | **End-to-end happy path in the UI:** "Make a plan" → attempts + Bedrock trace appear → final plan. Throttling + run cap active. |
 | 4. Safety, approval, eval | ≈ h11–14 | **Eval #1** done, failures logged. Approval + audit panel working. |
@@ -132,16 +132,24 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
   - Needs: P1-01
 - [x] **P3-06** Write contracts C2–C5 in `docs/contracts.md`.
   - Done. C1 and C6 are also drafted there, for P1 and P2 to confirm.
-- [ ] **P3-07** Kiro hook: run pytest when backend files are saved.
+- [x] **P3-07** Kiro hook: run pytest when backend files are saved.
+  - Done: `.kiro/hooks/backend-pytest-on-save.json` runs `.venv/bin/python -m pytest -q` when any `backend/` or `tests/` `.py` file is saved. Each teammate needs a `.venv` with `pip install -r backend/requirements-dev.txt`.
 - [x] **P3-15** Simulator stub with the **final function signature**. It returns a fake C4 result (with `plan_hash` and `all_green`), so P2 can build tools before P3-08 is done.
   - Done when: P2 can import it and call it with a C3 plan.
   - Done: `backend/shared/models.py` (real parsing, normalization, plan hash) and `simulator.py` (`simulate()` / `simulate_dict()`, fake numbers, `engine: "stub"`).
-    - Fake rule: a no-action plan is RED at 18–19 and YELLOW at 17 and 20. Any action makes every hour GREEN.
     - Import with `from shared.simulator import simulate_dict`, with `backend/` on the path.
-- [ ] **P3-16** AWS Budgets alarm on the hackathon account (email the team). With P2: confirm Claude + Guardrails region availability (P2-03).
+    - Superseded: P3-08 replaced the fake numbers with the real simulator (`engine: "v1"`), with the same signatures.
+- [x] **P3-18** Shared config: `backend/shared/config.py` + a committed `.env.example`.
+  - Done: one `Settings` object read from environment variables, with safe defaults (`us-east-1`, run cap 100, loop limits 5/12, table names).
+    - Locally it loads `.env` automatically. In AWS, SAM sets the same variable names.
+    - `settings.require("bedrock_model_id")` fails with a clear message if a setting is empty.
+    - `get_eia_api_key()` reads `EIA_API_KEY` locally, or the SSM parameter in AWS.
+    - Tested in `tests/test_config.py`.
+- [x] **P3-16** AWS Budgets alarm on the hackathon account (email the team). With P2: confirm Claude + Guardrails region availability (P2-03).
   - Done when: the alarm shows in Budgets, and the region is written in `tech.md`.
+  - **Budgets alarm deferred (team decision).** AWS billing data lags by hours, so the alarm could warn too late during the hackathon anyway. Cost protection relies on the agent loop limits, the daily run cap and throttling (P2-08, P3-17). Revisit if spending looks high. Our role can read Budgets; creating one is untested.
   - Progress: region done. `us-east-1` is written in `tech.md` and Claude is confirmed there.
-  - Left: the Budgets alarm.
+
 
 ### P4 (Frontend)
 - [ ] **P4-01** Vite + React + TS app, Recharts, routes for the 3 screens (empty pages): Forecast, Agent run, Briefing + approval.
@@ -190,9 +198,10 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
 - [ ] **P2-07** System prompt v1.
 
 ### P3
-- [ ] **P3-08** `simulator.py` + `models.py`: math and rules from section 8, the new pre-cool math from C3, allowed-hours checks, disruption score, clear violation messages.
+- [x] **P3-08** `simulator.py` + `models.py`: math and rules from section 8, the new pre-cool math from C3, allowed-hours checks, disruption score, clear violation messages.
   - Replaces the P3-15 stub with no change to the signature.
-- [ ] **P3-09** pytest:
+  - Done: every C3 validation rule and the C3 math are in, with `engine: "v1"`. Negative MW is a `PLAN_SHAPE` error. Broken data (net demand ≤ 0) raises `ValueError` instead of returning a fake margin.
+- [x] **P3-09** pytest:
   - battery can't over-discharge (`power_mw` per hour, `energy_mwh × efficiency` total);
   - **pre-cool energy is conserved:** MW removed across `from_hours` = MW added across `to_hours` (not counting the rebound);
   - **rebound is applied:** `shift_mw × rebound_pct / 100` lands in the hour after the last `from_hours` hour;
@@ -201,6 +210,7 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
   - `shift_mw` > `max_shift_mw` is rejected;
   - DR hours and time limits; alert hours and season limit; status thresholds; disruption score.
   - Done when: all tests pass and P2 can import the simulator.
+  - Done: 57 tests in `tests/test_simulator.py` and `tests/test_models.py`, all passing. They cover everything above, plus plan hashing and normalization (canonical form) and shape errors. The test numbers can be checked by hand (see `tests/conftest.py`). Run with `python -m pytest -q`.
 
 ### P4
 - [ ] **P4-06** Screen 1 (Forecast): scenario switch (`sept6_2022` ↔ `sept6_2022_plus5F`), P10–P90 band, P50 line, actual, CAISO forecast, available supply, risk window banner, source tooltips.
@@ -289,7 +299,7 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
   - data sources;
   - assumptions: `firm_mw` estimated from EIA actuals; batteries assumed charged from midday solar, no recharge modeled; simulated only;
   - limits, the forecast error and the eval score;
-  - security: "Cost protection only (throttling, daily run cap, Budgets alarm). Production would add Cognito login.";
+  - security: "Cost protection only (agent loop limits, throttling, daily run cap). Production would add Cognito login and a budget alarm.";
   - how to run it.
 - [ ] **P5-14** Video script and storyboard following the video outline above (5:00 max). With all: each owner writes 2–3 lines on their part.
   - Needs: P5-07, P5-13
@@ -333,7 +343,7 @@ These IDs are retired and won't be reused.
 4. ~~**Battery charging**~~ **Resolved:** not modeled. Batteries start at `start_soc_pct` with no recharge. Labelled as an ASSUMPTION in the README and the video: "batteries assumed charged from midday solar" (P5-12, P5-14).
 5. ~~**`firm_mw`**~~ **Resolved:** estimated from EIA actuals at the Sept 6, 2022 peak (demand − solar − wind + a small cushion), tuned so the no-action plan is RED around 6–7 p.m. at P90. Labelled "estimated from EIA actuals". P5-11 must finish before eval expectations (P5-06).
 6. ~~**Exact-plan check**~~ **Resolved:** the server hashes the plan (SHA-256 of canonical JSON) in `simulate` and again in `submit_plan`. The hash must match a plan simulated in this run, with an all-GREEN result or `CANNOT_MEET_TARGET`. The model's hash is never trusted. Written in C4 and tested in P2-06.
-7. ~~**API security**~~ **Resolved (updated):** judges only watch the video, so this is cost protection only: HTTP API stage throttling (very low on `POST /runs`), a daily cap of 100 runs in DynamoDB, and an AWS Budgets alarm. No passcode, no Cognito. The README says "production would add Cognito login." (P3-16, P3-17, P5-12)
+7. ~~**API security**~~ **Resolved (updated):** judges only watch the video, so this is cost protection only: HTTP API stage throttling (very low on `POST /runs`), and a daily cap of 100 runs in DynamoDB. The AWS Budgets alarm was later deferred (P3-16). No passcode, no Cognito. The README says "production would add Cognito login." (P3-16, P3-17, P5-12)
 
 ### New (small, settle in Block 2)
 
