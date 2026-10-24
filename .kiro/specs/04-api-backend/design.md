@@ -76,7 +76,8 @@ Each exposes `handler(event, context)`. The logic lives in a plain function that
 
 ### Packaging (SAM, `backend/template.yaml`)
 
-- **`backend/shared/`** becomes a Lambda Layer laid out as `python/shared/…`, so handlers import `from shared.simulator import simulate_dict`, the same way the tests do.
+- **Each function ships the whole `backend/` folder** (`CodeUri: .`, about 116 KB) with handler `functions.<name>.app.handler`. Handlers import `from shared.simulator import simulate_dict`, the same way the tests do. We chose this over a Lambda Layer because it's simpler, has no layer folder layout to get wrong, and the size is tiny.
+- **Stack:** `gridguard` in `us-east-1`. Settings are in `backend/samconfig.toml`. Deploy from `backend/` with `sam build && sam deploy`.
 - **Runtime:** `python3.12`, `arm64`. `boto3` comes from the Lambda runtime.
 - **Environment variables:** set from the stack (table names, bucket, limits, model ID), matching `.env.example`.
 - **Tables:** `Runs` (PK `run_id`), `Decisions` (PK `run_id`, SK `timestamp`), `Counters` (PK `day`). All on-demand billing.

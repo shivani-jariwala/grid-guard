@@ -128,8 +128,12 @@ The blocks are sized for about 18 build hours ending at the 7:30 AM freeze. If a
   - 01 data-forecast → P1 · 02 simulator → P3 · 03 agent → P2 · 04 api-backend → P3 · 05 dashboard → P4
   - Progress: folders created. `04-api-backend` is written (requirements, design, tasks).
   - Left: `02-simulator` (P3). 01, 03 and 05 are for their owners.
-- [ ] **P3-04** SAM skeleton: S3 bucket, `Runs` + `Decisions` tables, HTTP API, placeholder Lambdas. Deploy once.
+- [x] **P3-04** SAM skeleton: S3 bucket, `Runs` + `Decisions` tables, HTTP API, placeholder Lambdas. Deploy once.
   - Done when: a placeholder `GET /scenarios` returns 200.
+  - Done: stack `gridguard` deployed to `us-east-1`. It has the S3 bucket, the `Runs` / `Decisions` / `Counters` tables, and the HTTP API (CORS + throttling 20 req/s, burst 40) with the 3 real endpoints. More routes get added as they're built.
+    - **API URL:** `https://ebhacp9l2e.execute-api.us-east-1.amazonaws.com` (P4: use as `VITE_API_URL`)
+    - **Data bucket:** `gridguard-databucket-ceczq102ofyl` (P1/P5: upload `forecasts/` and `scenarios/` here)
+    - Smoke tested live: `GET /scenarios` → 200, unknown scenario → 404, missing param → 400.
 - [ ] **P3-05** Store EIA key in SSM Parameter Store.
   - Needs: P1-01
 - [x] **P3-06** Write contracts C2–C5 in `docs/contracts.md`.
